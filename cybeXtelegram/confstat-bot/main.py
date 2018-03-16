@@ -2,14 +2,11 @@
 __author__ = 'ShinnosukeTaniya'
 
 import logging
-import json
 
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
-
+from config import CONFIG
 from confstat import handlers, models
 
-with open('config.json', 'r') as file:
-    CONFIG = json.loads(file.read())
 
 logging.basicConfig(
     format=CONFIG['logging']['format'],
