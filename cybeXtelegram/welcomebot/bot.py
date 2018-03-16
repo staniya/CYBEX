@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 import logging
+import os
+from pathlib import Path
+import yaml
+from pprint import pprint
+import sys
+import telegram
 from html import escape
 
 from emoji import emojize
@@ -10,8 +16,25 @@ from telegram.ext.dispatcher import run_async
 import python3pickledb as pickledb
 
 # Configuration
-BOTNAME = 'cybexchatbot'
-TOKEN = '505262188:AAHeNuTIup_ngiw3x_VXqEiOICZGm49AN3w'
+
+PATH = os.path.dirname(os.path.abspath(__file__))
+
+"""
+#	Load the config file
+#	Set the Botname / Token
+"""
+config_file = PATH + '/config.yaml'
+my_file = Path(config_file)
+if my_file.is_file():
+    with open(config_file, encoding="utf-8") as fp:
+        config = yaml.load(fp)
+else:
+    pprint('config.yaml file does not exist.')
+    sys.exit()
+
+BOTNAME = config['BOT_USERNAME']
+TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
+bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
 
 help_text = 'This bot will send a welcome message to everyone that enters a group chat that this bot is a ' \
             'part of. By default, only the person who invited the bot into ' \
@@ -360,7 +383,7 @@ def error(bot, update, error, **kwargs):
 
 def main():
     # Create the Updater and pass it your bot's token.
-    updater = Updater(TOKEN, workers=10)
+    updater = Updater(bot=bot, workers=10)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher

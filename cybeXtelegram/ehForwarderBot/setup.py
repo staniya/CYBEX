@@ -35,7 +35,7 @@ setup(
         "Topic :: Utilities"
     ],
     install_requires=[
-        "PyYaml"
+        "PyYaml", 'telegram', 'django-emoji'
     ],
     entry_points={
         "console_scripts": ['ehforwarderbot = ehforwarderbot.__main__:main']
