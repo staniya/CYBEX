@@ -56,4 +56,5 @@ docs/_build/
 # PyBuilder
 target/
 
+#config file
 config.yaml
