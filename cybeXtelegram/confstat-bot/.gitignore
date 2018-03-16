@@ -1,0 +1,7 @@
+.idea
+__pycache__
+*.swp
+.stfolder
+*.sync*
+.stignore
+bot.log

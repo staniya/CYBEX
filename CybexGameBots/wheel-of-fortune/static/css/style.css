@@ -1,0 +1,108 @@
+html, body {
+   height: 100%;
+   width: 100%;
+   max-height: 100%;
+ }
+
+body{
+  background: url('wallpaper.jpg') center center no-repeat;
+  background-size: auto;
+}
+
+h1 {
+  font-family: PingFangTC, "Noto Sans TC", sans-serif;
+  color: white;
+  font-weight: 800;
+  font-size: 2.5em;
+}
+@media (min-width: 600px) {
+  h1 {
+    font-size: 3em;
+    padding: 0 2em;
+    flex-shrink: 0;
+    text-align: center;
+  }
+}
+.title{
+  list-style-type: none;
+  color: white;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 20px;
+}
+p {
+  text-align: center;
+}
+/*#button1{
+  border: 0;
+  height: 75px;
+  width: 75px;
+}
+
+button:focus{
+  outline: none !important;
+}
+
+.button-wrap{
+  width: 100%;
+}*/
+.modal-dialog{
+  text-align: center;
+}
+.modal-content{
+  background-color: #ff6666;  
+}
+#game{
+  font-family: PingFangTC, "Noto Sans TC", sans-serif;
+  color: white;
+}
+.fortune {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 1rem 5%;
+  border: 0;
+}
+#fortune-wheel {
+  font-family: PingFangTC, "Noto Sans TC", sans-serif;
+  font-weight: lighter;
+}
+#fortune-wheel g.slice text {
+  stroke: #fff;
+  letter-spacing: 0.2em;
+  font-size: 16px;
+}
+#fortune-wheel .centerspin {
+  fill: #D94B7F;
+  pointer-events: none;
+}
+
+#awardresult {
+  text-align: center;
+  flex-shrink: 0;
+}
+
+h5{
+  padding-top: 50px;
+  font-size: 1.5em;
+  color: white;
+  font-weight: 200;
+  font-family: PingFangTC, "Noto Sans TC", sans-serif;
+}
+h4 {
+  font-size: 3.5em;
+  color: white;
+  font-weight: 300;
+  font-family: PingFangTC, "Noto Sans TC", sans-serif;
+}
+h6{
+  padding-top: 50px;
+  font-size: 1em;
+  color: white;
+  font-weight: 200;
+  font-family: PingFangTC, "Noto Sans TC", sans-serif;
+}
+
