@@ -1,0 +1,8 @@
+# welcomebot
+# The username of your bot as set with the botfather
+BOT_USERNAME: "CybeXbot"
+# The bot token supplied by botfather
+BOT_TOKEN: "421938256:AAFDY7Ru0-LSawEsolFhFVCOd7M0pdfzNg8"
+
+API_URL: "https://api.coinmarketcap.com/v1/ticker/?limit=10000"
+NEWS_URL: "http://coindesk.com/feed"
