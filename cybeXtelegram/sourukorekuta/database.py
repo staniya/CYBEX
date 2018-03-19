@@ -1,5 +1,5 @@
 """The Module interacting with the db."""
-from cybeXtelegram.sourukorekuta import userbot, config
+from cybeXtelegram.sourukorekuta import userbot, configs
 from telegram import Chat, Bot, ChatMember
 from telegram.user import User
 import psycopg2 as ps2
@@ -10,10 +10,10 @@ curdir = '/'.join(__file__.split('/')[:-1])
 
 
 def runsql(sql: str, data: tuple = (), mogrify: bool = False) -> str:
-    conn_string = 'dbname={0}'.format(config.db_name),\
-                  'user={0}'.format(config.db_user),\
-                  'password={0}'.format(config.db_password),\
-                  'port={0}'.format(config.db_port)
+    conn_string = 'dbname={0}'.format(configs.db_name),\
+                  'user={0}'.format(configs.db_user),\
+                  'password={0}'.format(configs.db_password),\
+                  'port={0}'.format(configs.db_port)
     conn = ps2.connect(conn_string)  # type: ps2conn
     c = conn.cursor()  # type: ps2cursor
     if mogrify:
