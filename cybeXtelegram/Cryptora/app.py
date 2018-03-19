@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 # Cryptora - Public Repository
 
+from telegram.ext import Updater, InlineQueryHandler
+import logging
+import feedparser
+import dateparser
+
 from Cryptora_functions import *
 
 # Constant variables. 

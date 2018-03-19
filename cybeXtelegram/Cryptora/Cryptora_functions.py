@@ -1,5 +1,11 @@
-from app import *
-
+from decimal import Decimal
+from bs4 import BeautifulSoup
+import datefinder
+from collections import OrderedDict
+import requests
+from telegram import InlineQueryResultArticle, ParseMode, InputTextMessageContent
+from uuid import uuid4
+import gdax
 
 class Coin:
 
@@ -8,7 +14,7 @@ class Coin:
         self.data = requests.get('https://api.coinmarketcap.com/v1/ticker/?limit=10000',
                                  headers={'Cache-Control': 'no-cache'}).json()
 
-        if rank == None:
+        if not rank:
             self.name = str(self.get_name(query, self.data))
         else:
             self.name = str(self.get_name(rank, self.data))
@@ -16,7 +22,7 @@ class Coin:
         self.rank = str(self.get_rank(self.name, self.data))
         self.id = str(self.get_id(self.name, self.data))
 
-        if noCommas == False:
+        if not noCommas:
             self.price_USD = str(self.get_price(self.name, False, self.data))
         else:
             self.price_USD = str(self.get_price(self.name, True, self.data))
@@ -25,8 +31,8 @@ class Coin:
         self.supply = str(self.get_supply(self.name, self.data))
         self.percentChange = str(self.get_percent_change(self.name, self.data))
         self.symbol = str(self.get_symbol(self.name, self.data))
-        self.summary = str(self.generate_summary(self.price_USD, \
-                                                 self.marketCap, self.supply, self.percentChange, self.name, \
+        self.summary = str(self.generate_summary(self.price_USD,
+                                                 self.marketCap, self.supply, self.percentChange, self.name,
                                                  self.symbol, self.rank, self.data))
 
     def get_rank(self, query, data):
@@ -104,7 +110,7 @@ class Coin:
                     query.lower() == data[x]['id'] or \
                     query.lower() == (data[x]['name']).lower() or \
                     query == data[x]['rank']:
-                return str("{:,}".format(Decimal( \
+                return str("{:,}".format(Decimal(
                     float(data[x]['market_cap_usd']))))
 
     def get_supply(self, query, data):
@@ -117,7 +123,7 @@ class Coin:
                     query.lower() == data[x]['id'] or \
                     query.lower() == (data[x]['name']).lower() or \
                     query == data[x]['rank']:
-                return "{:,}".format(Decimal(float( \
+                return "{:,}".format(Decimal(float(
                     data[x]['available_supply'])))
 
     def get_percent_change(self, query, data):
@@ -132,17 +138,17 @@ class Coin:
                     query == data[x]['rank']:
                 return data[x]['percent_change_24h']
 
-    def generate_summary(self, price, cap, supplyValue, percentChange, \
+    def generate_summary(self, price, cap, supplyValue, percentChange,
                          name, symbol, rank, data):
 
         # Returns a summary of the cryptocurrency.
 
-        return ("***" + name + "***" + " (" + symbol + ")" + '\n \n' + \
- \
-                '***Rank***: #' + str(rank) + " out of " + str(len(data)) + "\n" + \
-                '***Price***: $' + price + '\n' + '***Market Capitalization***: $' \
-                + cap + '\n' + '***Circulating Supply***: ' + supplyValue + " " + \
-                symbol + '\n' + '***24 Hour Percent Change***: ' + \
+        return ("***" + name + "***" + " (" + symbol + ")" + '\n \n' +
+
+                '***Rank***: #' + str(rank) + " out of " + str(len(data)) + "\n" +
+                '***Price***: $' + price + '\n' + '***Market Capitalization***: $'
+                + cap + '\n' + '***Circulating Supply***: ' + supplyValue + " " +
+                symbol + '\n' + '***24 Hour Percent Change***: ' +
                 percentChange + "% \n")
 
 
@@ -150,25 +156,25 @@ class CryptoCalculatorInstance:
 
     def __init__(self, query, symbol, reverse, coinPrice, dollarValue):
 
-        if reverse == False:
+        if not reverse:
             self.inputValue = str((query.split(" "))[0])
             self.calculatedValue = str(self.calculate_price(query, symbol, self.inputValue))
 
         else:
-            self.calculatedValue = self.calculate_crypto_quantity(symbol, \
+            self.calculatedValue = self.calculate_crypto_quantity(symbol,
                                                                   coinPrice, dollarValue)
 
     # CryptoCalculator specific function.
 
     def calculate_price(self, query, symbol, userInput):
 
-        JSON_DATA = requests.get(JSON_API_URL).json()
+        JSON_DATA = requests.get('https://api.coinmarketcap.com/v1/ticker/?limit=10000').json()
 
         for x in range(0, len(JSON_DATA)):
             if symbol == JSON_DATA[x]['symbol']:
                 inputPrice = float(JSON_DATA[x]['price_usd'])
                 calculatedPrice = (float(userInput) * inputPrice)
-                return str("{:,}".format(Decimal(calculatedPrice). \
+                return str("{:,}".format(Decimal(calculatedPrice).
                                          quantize(Decimal('1.00'), rounding='ROUND_HALF_DOWN')))
 
     # Reverse CryptoCalculator specific function.
@@ -198,7 +204,7 @@ class NewsArticle:
     def get_image(self, URL):
         page = requests.get(URL)
         soup = BeautifulSoup(page.content, 'html.parser')
-        unformattedLink = str((soup.find_all('div', \
+        unformattedLink = str((soup.find_all('div',
                                              class_="article-top-image-section"))).split(">")[0]
         return unformattedLink[69:][:-3]
 
@@ -266,7 +272,7 @@ def get_coin_name_from_historical_query(wordCount, query):
 
 def convert_month_number_to_name(string):
     monthNumber = int(string)
-    months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', \
+    months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
               'August', 'September', 'October', 'November', 'December']
 
     return months[monthNumber - 1]
@@ -281,19 +287,19 @@ def determine_if_date_in_string(string):
 
 
 def get_day(string, dateInString):
-    if dateInString == True:
+    if dateInString:
         dates = list(datefinder.find_dates(string))
         return dates[0].day
 
 
 def get_month(string, dateInString):
-    if dateInString == True:
+    if dateInString:
         dates = list(datefinder.find_dates(string))
         return dates[0].month
 
 
 def get_year(string, dateInString):
-    if dateInString == True:
+    if dateInString:
         dates = list(datefinder.find_dates(string))
         return dates[0].year
 
@@ -301,33 +307,34 @@ def get_year(string, dateInString):
 # Function for GDAX price retrieval.
 
 def get_GDAX_price(string):
+    global priceWithCommas
     public_client = gdax.PublicClient()
 
     if string == "bitcoin":
 
         price = public_client.get_product_ticker(product_id='BTC-USD')['price']
-        decimalizedPrice = Decimal(price).quantize(Decimal('1.00'), \
+        decimalizedPrice = Decimal(price).quantize(Decimal('1.00'),
                                                    rounding='ROUND_HALF_DOWN')
         priceWithCommas = str("{:,}".format(decimalizedPrice))
 
     elif string == "litecoin":
 
         price = public_client.get_product_ticker(product_id='LTC-USD')['price']
-        decimalizedPrice = Decimal(price).quantize(Decimal('1.00'), \
+        decimalizedPrice = Decimal(price).quantize(Decimal('1.00'),
                                                    rounding='ROUND_HALF_DOWN')
         priceWithCommas = str("{:,}".format(decimalizedPrice))
 
     elif string == "ethereum":
 
         price = public_client.get_product_ticker(product_id='ETH-USD')['price']
-        decimalizedPrice = Decimal(price).quantize(Decimal('1.00'), \
+        decimalizedPrice = Decimal(price).quantize(Decimal('1.00'),
                                                    rounding='ROUND_HALF_DOWN')
         priceWithCommas = str("{:,}".format(decimalizedPrice))
 
     elif string == "bitcoin_cash":
 
         price = public_client.get_product_ticker(product_id='BCH-USD')['price']
-        decimalizedPrice = Decimal(price).quantize(Decimal('1.00'), \
+        decimalizedPrice = Decimal(price).quantize(Decimal('1.00'),
                                                    rounding='ROUND_HALF_DOWN')
         priceWithCommas = str("{:,}".format(decimalizedPrice))
 
@@ -416,6 +423,7 @@ def get_percent_changes(currencyList, data):
 
 
 def generate_multi_currency_list(query):
+    global results
     data = requests.get('https://api.coinmarketcap.com/v1/ticker/?limit=10000').json()
 
     if query.endswith(","):
@@ -431,23 +439,23 @@ def generate_multi_currency_list(query):
         results = [
             InlineQueryResultArticle(
                 id=uuid4(),
-                title=('Prices'),
+                title='Prices',
                 description='Tap to send.',
                 thumb_url="https://imgur.com/7RCGCoc.png",
                 input_message_content=InputTextMessageContent(prices, ParseMode.MARKDOWN)),
 
             InlineQueryResultArticle(
                 id=uuid4(),
-                title=('Market Capitalizations'),
+                title='Market Capitalizations',
                 description='Tap to send.',
                 thumb_url="https://i.imgur.com/UMczLVP.png",
                 input_message_content=InputTextMessageContent(marketCaps, ParseMode.MARKDOWN)),
 
             InlineQueryResultArticle(
                 id=uuid4(),
-                title=('Percent Change Values'),
+                title='Percent Change Values',
                 description='Tap to send.',
-                thumb_url=("https://imgur.com/iAoXFQc.png"),
+                thumb_url="https://imgur.com/iAoXFQc.png",
                 input_message_content=InputTextMessageContent(percentChanges, ParseMode.MARKDOWN)),
         ]
 
@@ -463,10 +471,10 @@ def generate_multi_currency_list(query):
             InlineQueryResultArticle(
                 id=uuid4(),
                 description=("$" + listEntry.price_USD),
-                thumb_url='https://files.coinmarketcap.com/static/img/coins/' \
+                thumb_url='https://files.coinmarketcap.com/static/img/coins/'
                           + '200x200/' + listEntry.id + '.png',
-                title=(listEntry.name),
-                input_message_content=InputTextMessageContent(listEntry.summary, \
+                title=listEntry.name,
+                input_message_content=InputTextMessageContent(listEntry.summary,
                                                               ParseMode.MARKDOWN)),
         )
 
