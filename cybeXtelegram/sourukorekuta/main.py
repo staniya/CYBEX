@@ -10,7 +10,9 @@ import telegram
 import sys
 from telegram import Bot, Update, Message, Chat, User
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
-from cybeXtelegram.sourukorekuta import userbot, config, database as db
+import userbot
+import configs
+import database as db
 
 logging.basicConfig(
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -104,7 +106,7 @@ def bothelp(bot: Bot, update: Update) -> None:
 def ping(bot, update) -> None:
     chat = update.effective_chat  # type: Chat
     bot.send_message(chat_id=chat.id, text="MESSAGE")
-    if update.effective_chat.type != 'private' and config.delete_commands:
+    if update.effective_chat.type != 'private' and configs.delete_commands:
         bot.delete_message(chat_id=update.effective_chat.id,
                            message_id=update.effective_message.message_id)
 
@@ -181,7 +183,7 @@ def info(bot: Bot, update: Update) -> None:
                 "  Voice Messages: {0}".format(userinfo['count_voice']))
         message = '\n'.join(msg_list)
         bot.send_message(chat_id=chat.id, text=message)
-        if config.delete_commands:
+        if configs.delete_commands:
             bot.delete_message(chat_id=update.effective_chat.id,
                                message_id=update.effective_message.message_id)
 
@@ -193,7 +195,7 @@ def stats(bot: Bot, update: Update) -> None:
 
         update.message.reply_text('This Group has ' + str(group['active_members_count']) +
                                   ' active members')
-        if config.delete_commands:
+        if configs.delete_commands:
             bot.delete_message(chat_id=update.effective_chat.id,
                                message_id=update.effective_message.message_id)
 
@@ -225,7 +227,7 @@ def execution_warn(bot: Bot, update: Update) -> None:
             return
         fullmsg = 'We miss you in our chat, send a cool stamp!'
         bot.send_message(chat_id=chat.id, text=fullmsg, parst_mode='Markdown')
-        if config.delete_commands:
+        if configs.delete_commands:
             bot.delete_message(chat_id=chat.id, message_id=msg.message_id)
 
 

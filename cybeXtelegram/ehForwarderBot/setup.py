@@ -35,7 +35,7 @@ setup(
         "Topic :: Utilities"
     ],
     install_requires=[
-        "PyYaml", 'telegram', 'dateparser', 'feedparser', 'gdax', 'requests', 'datefinder', 'beautifulsoup4'
+        "PyYaml", 'telegram', 'dateparser', 'feedparser', 'gdax', 'requests', 'datefinder', 'beautifulsoup4', 'telethon'
     ],
     entry_points={
         "console_scripts": ['ehforwarderbot = ehforwarderbot.__main__:main']

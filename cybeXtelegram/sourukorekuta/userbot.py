@@ -9,12 +9,12 @@ from telethon.tl.functions.messages import SendMessageRequest
 from telethon.tl.types import Channel, InputChannel, ChannelParticipantsSearch, \
     InputPeerChannel, User
 
-from cybeXtelegram.sourukorekuta import config
+import configs
 
 logger = logging.getLogger(__name__)
-api_id = config.ub_api_id
-api_hash = config.ub_api_hash
-phone = config.ub_phone
+api_id = configs.ub_api_id
+api_hash = configs.ub_api_hash
+phone = configs.ub_phone
 curdir = '/'.join(__file__.split('/')[:-1]) + '/'
 client = TelegramClient(curdir + 'main_session',
                         api_id, api_hash)
