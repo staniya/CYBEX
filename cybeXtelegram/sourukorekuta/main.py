@@ -2,6 +2,11 @@
 """The Main bot file."""
 import logging
 from time import strftime, gmtime
+from pathlib import Path
+import os
+import yaml
+from pprint import pprint
+import telegram
 import sys
 from telegram import Bot, Update, Message, Chat, User
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
@@ -12,6 +17,26 @@ logging.basicConfig(
         level=logging.INFO, datefmt='%H:%M:%S', stream=sys.stdout)
 
 logger = logging.getLogger(__name__)
+
+# Configuration
+
+PATH = os.path.dirname(os.path.abspath(__file__))
+
+"""
+#	Load the config file
+#	Set the Botname / Token
+"""
+config_file = PATH + '/config.yaml'
+my_file = Path(config_file)
+if my_file.is_file():
+    with open(config_file, encoding="utf-8") as fp:
+        config = yaml.load(fp)
+else:
+    pprint('config.yaml file does not exist.')
+    sys.exit()
+
+TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
+bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
 
 
 def msg_type(msg: Message):
@@ -210,7 +235,7 @@ def error(bot, update, error):
 
 def main():
     # Create the EventHandler and pass it your bot's token.
-    updater = Updater('517916025:AAEce53YfGCSePYZ_Qn-spqdPwqWeC5WAdo')
+    updater = Updater(bot=bot)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
