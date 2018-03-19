@@ -5,12 +5,14 @@ from telegram.ext import Updater, InlineQueryHandler
 import logging
 import feedparser
 import dateparser
+import os
+from pathlib import Path
+import yaml
+import sys
+from pprint import pprint
+import telegram
 
 from Cryptora_functions import *
-
-# Constant variables. 
-JSON_API_URL = 'https://api.coinmarketcap.com/v1/ticker/?limit=10000'
-NEWS_URL = "http://coindesk.com/feed"
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - \
@@ -18,6 +20,29 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - \
                     level=logging.INFO)
 
 logger = logging.getLogger(__name__)
+
+PATH = os.path.dirname(os.path.abspath(__file__))
+
+"""
+#	Load the config file
+#	Set the Botname / Token
+"""
+config_file = PATH + '/config.yaml'
+my_file = Path(config_file)
+if my_file.is_file():
+    with open(config_file, encoding="utf-8") as fp:
+        config = yaml.load(fp)
+else:
+    pprint('config.yaml file does not exist.')
+    sys.exit()
+
+TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
+
+# Constant variables.
+JSON_API_URL = config['API_URL']
+NEWS_URL = config['NEWS_URL']
+
+bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
 
 
 def inlinequery(bot, update):
@@ -706,7 +731,7 @@ def error(bot, update, error):
 
 def main():
     # Create the Updater and pass it your bot's token.
-    updater = Updater('token')
+    updater = Updater(bot=bot)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher

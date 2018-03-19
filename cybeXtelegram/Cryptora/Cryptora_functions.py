@@ -7,6 +7,7 @@ from telegram import InlineQueryResultArticle, ParseMode, InputTextMessageConten
 from uuid import uuid4
 import gdax
 
+
 class Coin:
 
     def __init__(self, query, rank, noCommas):
