@@ -106,5 +106,5 @@ venv.bak/
 .mypy_cache/
 
 *.session
-config.py
+configs.py
 config.yaml
