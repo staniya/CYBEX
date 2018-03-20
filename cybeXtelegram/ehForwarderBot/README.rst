@@ -54,7 +54,7 @@ Getting Started
 
 2. `Install and enable channels`_ from the `channels repository`_.
 
-3. Launch EFB::
+3. Launch EFB::e
 
     ehforwarderbot
 
