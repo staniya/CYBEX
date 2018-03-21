@@ -59,3 +59,4 @@ typings/
 
 #config js file
 bin/support.js
+support.js
