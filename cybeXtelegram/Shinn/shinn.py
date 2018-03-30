@@ -196,11 +196,30 @@ def login():
 @login_required
 def main():
     g.db = connect_db()
-    cur = g.db.execute('select * from posts')
-    posts = [dict(title=row[0], post=row[1])
+    cur = g.db.execute('select * from users')
+    users = [dict(update_id=row[0], chat=row[1])
              for row in cur.fetchall()]
     g.db.close()
-    return render_template('main.html', posts=posts)
+    return render_template('main.html', users=users)
+
+
+@app.route('/add', methods=['POST'])
+@login_required
+def add():
+    update_id = request.form['update_id']
+    chat = request.form['chat']
+    if not update_id or not chat:
+        flash("All fields are required to complete the request. "
+              "Please try again!")
+        return redirect(url_for('main'))
+    else:
+        g.db = connect_db()
+        g.db.execute('insert into users (update_id, chat) values (?,?)',
+                     [request.form['update_id'], request.form['chat']])
+        g.db.commit()
+        g.db.close()
+        flash('New entry was successfully posted!')
+        return redirect(url_for('main'))
 
 
 @app.route('/logout')
@@ -208,6 +227,7 @@ def logout():
     session.pop('logged_in', None)
     flash('You were logged out')
     return redirect(url_for('login'))
+
 
 #################################
 # Begin bot..
@@ -1440,7 +1460,9 @@ dp.add_error_handler(error)
 
 #################################
 # Polling
-logger.info("Starting polling")
-updater.start_polling()
+if __name__ == '__main__':
+    logger.info("Starting polling")
+    updater.start_polling()
+    app.run(debug=True)
 
 # PikaWrapper()
