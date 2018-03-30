@@ -1,6 +1,7 @@
-# Management, a Telegram Administrative assistant bot by @whalepoolbtc - https://whalepool.io   
+# A telegram administrative Administrative assistant bot by CybeX
 
 A simple telegram bot to help with the moderation of the telegram channels utilizing [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)
+Originally developed from @whalepoolbtc: botname, Natalia
 
 ### Features  
 - Start / Welcome console with a selection of prebuild simple messages/pages  
@@ -37,6 +38,6 @@ You will have to edit/set some of the rooms under `shinn.py` for your room id's 
 To run:  
 `python3.6 shinn.py`
 
-For more info join [@whalepoolbtc](https://t.me/whalepoolbtc) on telegram   
+For more info join [@cybex](https://t.me/joinchat/IJzAyRFgkhCv2E4s6fLRyg) on telegram   
 
-![Profile pic](http://i.imgur.com/iIUSRDG.jpg)
+![Profile pic](https://cybex.io/assets/cybex_logo_w-681bfeab7ae60f50595128137e6229052ac47f2e37c714097490f816c61a22d3.png)
