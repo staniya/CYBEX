@@ -1,6 +1,7 @@
 # A telegram administrative Administrative assistant bot by CybeX
 
-A simple telegram bot to help with the moderation of the telegram channels utilizing [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)
+A simple telegram bot to help with the moderation of the telegram channels utilizing [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot).
+
 Originally developed from @whalepoolbtc: botname, Natalia
 
 ### Features  
@@ -40,4 +41,4 @@ To run:
 
 For more info join [@cybex](https://t.me/joinchat/IJzAyRFgkhCv2E4s6fLRyg) on telegram   
 
-![Profile pic](https://cybex.io/assets/cybex_logo_w-681bfeab7ae60f50595128137e6229052ac47f2e37c714097490f816c61a22d3.png)
+![Profile pic](https://s.redditmedia.com/t5_f07wh/styles/profileIcon_01bxddh15dc01.jpg?fit=crop&crop=faces%2Centropy&arh=1.0&w=256&h=256&s=369ad0427c91e38aa04ea8637bd2ebb7)
