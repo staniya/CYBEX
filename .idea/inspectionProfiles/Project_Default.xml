@@ -5,6 +5,7 @@
       <option name="ignoredErrors">
         <list>
           <option value="E501" />
+          <option value="E265" />
         </list>
       </option>
     </inspection_tool>
@@ -13,6 +14,13 @@
         <list>
           <option value="N806" />
           <option value="N803" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="talib.*" />
         </list>
       </option>
     </inspection_tool>

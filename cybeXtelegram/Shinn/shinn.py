@@ -655,7 +655,7 @@ def todaysusers(bot, update):
 
     logger.info("Building usernames pic...")
     PATH_MASK = PATH + "media/wp_background_mask2.png"
-    PATH_BG = PATH + "media/wp_background.png"
+    PATH_BG = PATH + "media/cybex_background.png"
     PATH_USERNAMES = PATH + "telegram-usernames.png"
 
     # Usernames
