@@ -8,11 +8,11 @@
         <form action="{{ url_for('add')}}" method="post" class="add">
             <div>
                 <label>update_id:</label>
-                <input name="title" type="text">
+                <input name="update_id" type="text">
             </div>
             <div>
                 <label>chat:</label>
-                <textarea name="post" rows="5" cols="40"></textarea>
+                <textarea name="chat" rows="5" cols="40"></textarea>
             </div>
             <div class="">
                 <input class="button" type="submit" value="Save">
@@ -22,9 +22,9 @@
     <br/>
     <br/>
     <h3>Posts:</h3>
-    {% for p in posts %}
-        <strong>update_id:</strong> {{ p.title }} <br/>
-        <strong>chat:</strong> {{ p.post }} <br/>
+    {% for u in users %}
+        <strong>update_id:</strong> {{ u.update_id }} <br/>
+        <strong>chat:</strong> {{ u.chat }} <br/>
         <br/>
     {% endfor %}
 {% endblock %}
