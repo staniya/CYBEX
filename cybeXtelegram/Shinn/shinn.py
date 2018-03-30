@@ -10,6 +10,8 @@ import re
 import sys
 import time
 from functools import wraps
+from flask import Flask, render_template, \
+    request, session, flash, redirect, url_for, g
 from pathlib import Path
 from pprint import pprint
 
@@ -18,6 +20,7 @@ import numpy as np
 # For plotting messages / price charts
 import pandas as pd
 import requests
+import sqlite3
 import telegram
 import yaml
 from PIL import Image
@@ -36,8 +39,6 @@ from matplotlib.patches import Rectangle
 import talib as ta
 
 PATH = os.path.dirname(os.path.abspath(__file__))
-
-#TODO change all whalepool to CYBEX and all Natalia to shinn or management
 
 """
 # Configure Logging
@@ -65,6 +66,14 @@ if my_file.is_file():
 else:
     pprint('config.yaml file does not exist.')
     sys.exit()
+
+"""
+# sqlite for my local device to save user information
+"""
+DATABASE = config['SQLITE_DATABASE']
+USERNAME = config['SQLITE_USERNAME']
+PASSWORD = config['SQLITE_PASSWORD']
+SECRET_KEY = config['SQLITE_SECRET_KEY']
 
 BOTNAME = config['BOT_USERNAME']
 TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
@@ -111,6 +120,8 @@ CYBEX_LOCKED = -280403559  # Cybex Bot Lab2. This is a special group only allowe
 WP_FEED = "@whalepoolbtcfeed"  # Whalepool Feed
 SP_FEED = "@shitcoincharts"  # shitpool feed
 
+# TODO change all whalepool to Shinn and Natalia to bot
+
 ROOM_ID_TO_NAME = {
     CHAT_ROOM: 'Cybex Chat Group',
     CYBEX_ADMIN: 'Administrators',
@@ -142,6 +153,61 @@ forward_hashtags = {
     '#communityfund': WP_FEED,
     '#community': WP_FEED
 }
+
+#################################
+# run the flask application
+app = Flask(__name__)
+
+app.config.from_object(__name__)
+
+
+def connect_db():
+    return sqlite3.connect(app.config['DATABASE'])
+
+
+def login_required(test):
+    @wraps(test)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return test(*args, **kwargs)
+        else:
+            flash('Please log-in to the platform first.')
+            return redirect(url_for('login'))
+
+    return wrap
+
+
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    error = None
+    status_code = 200
+    if request.method == 'POST':
+        if request.form['username'] != app.config['USERNAME'] or \
+                request.form['password'] != app.config['PASSWORD']:
+            error = "Invalid Credentials. Please try again"
+            status_code = 401
+        else:
+            session['logged_in'] = True
+            return redirect(url_for('main'))
+    return render_template('login.html', error=error), status_code
+
+
+@app.route('/main')
+@login_required
+def main():
+    g.db = connect_db()
+    cur = g.db.execute('select * from posts')
+    posts = [dict(title=row[0], post=row[1])
+             for row in cur.fetchall()]
+    g.db.close()
+    return render_template('main.html', posts=posts)
+
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    flash('You were logged out')
+    return redirect(url_for('login'))
 
 #################################
 # Begin bot..

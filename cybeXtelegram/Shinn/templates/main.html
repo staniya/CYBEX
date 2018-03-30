@@ -1,0 +1,30 @@
+{% extends "template.html" %}
+{% block content %}
+    <h2>Welcome Admin to Cybex User Information!</h2>
+    <h3>If you reached this website on accident, immediately exit out</h3>
+    <p><a href="{{url_for('logout')}}">Log out</a></p>
+        <h3>Add a new post:<br/>
+        Please keep the format of the database the same</h3>
+        <form action="{{ url_for('add')}}" method="post" class="add">
+            <div>
+                <label>update_id:</label>
+                <input name="title" type="text">
+            </div>
+            <div>
+                <label>chat:</label>
+                <textarea name="post" rows="5" cols="40"></textarea>
+            </div>
+            <div class="">
+                <input class="button" type="submit" value="Save">
+            </div>
+        </form>
+    <br/>
+    <br/>
+    <br/>
+    <h3>Posts:</h3>
+    {% for p in posts %}
+        <strong>update_id:</strong> {{ p.title }} <br/>
+        <strong>chat:</strong> {{ p.post }} <br/>
+        <br/>
+    {% endfor %}
+{% endblock %}
