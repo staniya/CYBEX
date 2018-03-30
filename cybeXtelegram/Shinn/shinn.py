@@ -1117,6 +1117,12 @@ def new_chat_member(bot, update):
         info = {'user_id': user_id, 'chat_id': chat_id, 'timestamp': timestamp}
         db.room_joins.insert(info)
 
+        g.db = connect_db()
+        g.db.execute('insert into users (update_id, chat) values (?,?)',
+                     [user_id, {message_id: timestamp}])
+        g.db.commit()
+        g.db.close()
+
         profile_pics = bot.getUserProfilePhotos(user_id=user_id)
         if profile_pics.total_count == 0:
             pprint("USER NEEDS A PROFILE PIC")
