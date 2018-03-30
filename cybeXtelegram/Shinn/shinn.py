@@ -1460,9 +1460,10 @@ dp.add_error_handler(error)
 
 #################################
 # Polling
+logger.info("Starting polling")
+updater.start_polling()
+
 if __name__ == '__main__':
-    logger.info("Starting polling")
-    updater.start_polling()
-    app.run(debug=True)
+    app.run()
 
 # PikaWrapper()
