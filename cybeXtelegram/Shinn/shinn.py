@@ -325,7 +325,6 @@ def about(bot, update):
         timestamp = datetime.datetime.utcnow()
         info = {'user_id': user_id, 'request': 'about', 'timestamp': timestamp}
         db.pm_requests.insert(info)
-
         bot.sendMessage(chat_id=chat_id, text=msg, parse_mode="Markdown", disable_web_page_preview=1)
 
 
