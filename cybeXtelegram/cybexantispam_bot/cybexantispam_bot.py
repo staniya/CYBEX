@@ -30,7 +30,7 @@ This simple telegram bot was created to solve only one task - to delete FUCKINGL
 
 *Usage*
 
-1. Add [@nosticker_bot](https://t.me/nosticker_bot) to your group.
+1. Add [@cybexantispam_bot](https://t.me/cybexantispam_bot) to your group.
 2. Go to group settings / users list / promote user to admin
 3. Enable only one item: Delete messages
 4. Click SAVE button
@@ -48,7 +48,7 @@ Support group: [@tgrambots](https://t.me/tgrambots)
 
 ########## code imported from daysandbx_bot.py ############
 
-SUPERUSER_IDS = {547143881, 483171166}
+SUPERUSER_IDS = {547143881}
 # List of keys allowed to use in set_setting/get_setting
 GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safe_hours')
 # Channel of global channel to translate ALL spam
