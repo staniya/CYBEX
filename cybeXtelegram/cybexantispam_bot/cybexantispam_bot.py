@@ -183,8 +183,8 @@ def handle_start_help(bot, update):
         )
     else:
         if msg.text.strip() in (
-                '/start', '/start@daysandbox_bot', '/start@daysandbox_test_bot',
-                '/help', '/help@daysandbox_bot', '/help@daysandbox_test_bot'
+                '/start', '/start@cybexantispam_bot', '/start@cybexantispam_test_bot',
+                '/help', '/help@cybexantispam_bot', '/help@cybexantispam_test_bot'
         ):
             try:
                 bot.delete_message(msg.chat.id, msg.message_id)
@@ -201,52 +201,32 @@ def handle_start_help(bot, update):
 
 
 @run_async
-def handle_stat(bot, msg):
-    # TODO if necessary, switch this to daysandbox
+def handle_stat(bot, update):
+    msg = update.effective_message
     if msg.chat.type != 'private':
-        if msg.text.strip() in (
-                '/stat', '/stat@nosticker_bot', '/stat@nosticker_test_bot',
-        ):
-            bot.delete_message(msg.chat.id, msg.message_id)
         return
-    days = []
-    top_today = Counter()
-    top_ystd = Counter()
-    top_week = Counter()
+    cnt = {
+        'delete_msg': [],
+        'chat': [],
+    }
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     for x in range(7):
         day = today - timedelta(days=x)
-        query = {'$and': [
-            {'type': 'delete_sticker'},
-            {'date': {'$gte': day}},
-            {'date': {'$lt': day + timedelta(days=1)}},
-        ]}
-        num = 0
-        for event in db.event.find(query):
-            num += 1
-            key = (
-                '@%s' % event['chat_username'] if event['chat_username']
-                else '#%d' % event['chat_id']
-            )
-            if day == today:
-                top_today[key] += 1
-            if day == (today - timedelta(days=1)):
-                top_ystd[key] += 1
-            top_week[key] += 1
-        days.insert(0, num)
-    ret = 'Recent 7 days: %s' % ' | '.join([str(x) for x in days])
-    ret += '\n\nTop today (%d):\n%s' % (
-        len(top_today),
-        '\n'.join('  %s (%d)' % x for x in top_today.most_common()
-                  ))
-    ret += '\n\nTop yesterday (%d):\n%s' % (
-        len(top_ystd),
-        '\n'.join('  %s (%d)' % x for x in top_ystd.most_common()
-                  ))
-    ret += '\n\nTop 10 week:\n%s' % '\n'.join('  %s (%d)' % x for x in top_week.most_common(10))
-    bot.reply_to(msg, ret)
+        stat = db.day_stat.find_one({'date': day})
+        if stat:
+            cnt['delete_msg'].insert(0, stat['delete_msg'])
+            cnt['chat'].insert(0, stat['chat'])
+        else:
+            cnt['delete_msg'].insert(0, 'NA')
+            cnt['chat'].insert(0, 'NA')
 
-    return bot
+    ret = '*Recent 7 days stat*\n'
+    ret += '\n'
+    ret += 'Deleted messages:\n'
+    ret += ('    %s' % '|'.join(map(str, cnt['delete_msg']))) + '\n'
+    ret += 'Affected chats:\n'
+    ret += ('    %s' % '|'.join(map(str, cnt['chat']))) + '\n'
+    bot.send_message(msg.chat.id, ret, parse_mode=ParseMode.MARKDOWN)
 
 
 @run_async
@@ -262,9 +242,9 @@ def handle_set_get(bot, update):
         delete_message_safe(bot, msg)
         # bot.send_message(msg.chat.id, 'Access denied')
         return
-    re_cmd_set = re.compile(r'^/daysandbox_set (publog|safe_hours)=(.+)$')
-    re_cmd_get = re.compile(r'^/daysandbox_get (publog|safe_hours)=()$')
-    if msg.text.startswith('/daysandbox_set'):
+    re_cmd_set = re.compile(r'^/cybexantispam_set (publog|safe_hours)=(.+)$')
+    re_cmd_get = re.compile(r'^/cybexantispam_get (publog|safe_hours)=()$')
+    if msg.text.startswith('/cybexantispam_set'):
         match = re_cmd_set.match(msg.text)
         action = 'SET'
     else:
@@ -569,7 +549,7 @@ def handle_any_message(mode, bot, update):
                     raise
 
 
-def create_bot(api_token, dab):
+def create_bot(api_token, db):
     bot = telebot.TeleBot(api_token)
 
     @bot.message_handler(
@@ -579,7 +559,7 @@ def create_bot(api_token, dab):
         content_types=['sticker'])
     def handle_sticker(msg):
         bot.delete_message(msg.chat.id, msg.message_id)
-        dab.event.save({
+        db.event.save({
             'type': 'delete_sticker',
             'chat_id': msg.chat.id,
             'chat_username': msg.chat.username,
@@ -591,7 +571,7 @@ def create_bot(api_token, dab):
     @bot.message_handler(content_types=['document'])
     def handle_document(msg):
         bot.delete_message(msg.chat.id, msg.message_id)
-        dab.event.save({
+        db.event.save({
             'type': 'delete_document',
             'chat_id': msg.chat.id,
             'chat_username': msg.chat.username,
@@ -610,7 +590,7 @@ def create_bot(api_token, dab):
     @bot.message_handler(content_types=['photo'])
     def handle_photo(msg):
         bot.delete_message(msg.chat.id, msg.message_id)
-        dab.event.save({
+        db.event.save({
             'type': 'delete_photo',
             'chat_id': msg.chat.id,
             'chat_username': msg.chat.username,
@@ -626,7 +606,7 @@ def create_bot(api_token, dab):
     @bot.message_handler(content_types=['audio'])
     def handle_audio(msg):
         bot.delete_message(msg.chat.id, msg.message_id)
-        dab.event.save({
+        db.event.save({
             'type': 'delete_audio',
             'chat_id': msg.chat.id,
             'chat_username': msg.chat.username,
@@ -645,7 +625,7 @@ def create_bot(api_token, dab):
     @bot.message_handler(content_types=['voice'])
     def handle_voice(msg):
         bot.delete_message(msg.chat.id, msg.message_id)
-        dab.event.save({
+        db.event.save({
             'type': 'delete_audio',
             'chat_id': msg.chat.id,
             'chat_username': msg.chat.username,
@@ -662,7 +642,7 @@ def create_bot(api_token, dab):
     @bot.message_handler(content_types=['video'])
     def handle_voice(msg):
         bot.delete_message(msg.chat.id, msg.message_id)
-        dab.event.save({
+        db.event.save({
             'type': 'delete_audio',
             'chat_id': msg.chat.id,
             'chat_username': msg.chat.username,
@@ -680,7 +660,7 @@ def create_bot(api_token, dab):
     @bot.message_handler(content_types=['location'])
     def handle_location(msg):
         bot.delete_message(msg.chat.id, msg.message_id)
-        dab.event.save({
+        db.event.save({
             'type': 'delete_audio',
             'chat_id': msg.chat.id,
             'chat_username': msg.chat.username,
@@ -707,16 +687,16 @@ def get_token(mode):
 def init_updater_with_mode(mode):
     assert mode in ('test', 'production')
     token = Updater(token=get_token(mode), workers=32)
-    dab = connect_db
-    create_bot(token, dab)
+    db = connect_db
+    create_bot(token, db)
     return token
 
 
 def init_bot_with_mode(mode):
     assert mode in ('test', 'production')
     token = Bot(token=get_token(mode))
-    dab = connect_db
-    create_bot(token, dab)
+    db = connect_db
+    create_bot(token, db)
     return token
 
 
@@ -731,7 +711,7 @@ def register_handlers(dispatcher, mode):
     ))
     dispatcher.add_handler(CommandHandler('stat', handle_stat))
     dispatcher.add_handler(CommandHandler(
-        ['daysandbox_set', 'daysandbox_get'], handle_set_get
+        ['cybexantispam_set', 'cybexantispam_get'], handle_set_get
     ))
     dispatcher.add_handler(CommandHandler('setlog', handle_setlog))
     dispatcher.add_handler(CommandHandler('unsetlog', handle_unsetlog))
