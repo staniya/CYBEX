@@ -1,0 +1,7 @@
+pytelegrambotapi
+pymongo
+jsondate
+bottle
+gunicorn
+python-telegram-bot
+runscript
