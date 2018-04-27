@@ -1,13 +1,18 @@
-## No Sticker Bot
+## CYBEX Anti-Spam Bot
 
-This simple telegram bot was created to solve only one task - to delete
-FUCKINGLY annoying stickers. Since you add bot to the group and allow it to
-delete messages it watches all new messages and delete stickers
-immediately.
+cybexantispam_bot deletes all posts by users that joined less than a month ago that contain:
+1. links that mention @username or have been forwarded from somewhere
+2. images
+3. videos
+4. stickers
+5. documents
+6. locations
+7. audio
+8. voice recordings
 
 ## Usage
 
-1. Add [@nosticker_bot](https://t.me/nosticker_bot) to your group.
+1. Add [@cybexantispam_bot](https://t.me/cybexantispam_bot) to your group.
 2. Go to group settings / users list / promote user to admin
 3. Enable only one item: Delete messages
 4. Click SAVE button
@@ -15,6 +20,6 @@ immediately.
 
 ## Support
 
-* Support chat: [@tgrambots](https://t.me/tgrambots)
-* Author's telegram: [@madspectator](https://t.me/madspectator)
-* Use github issues to report bugs: [github issues](https://github.com/lorien/nosticker_bot/issues)
+* Support chat: [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
+* Author's telegram: [@Shinno](https://t.me/Shinno1002)
+* Use github issues to report bugs: [github issues](https://github.com/staniya/CYBEX/issues)
