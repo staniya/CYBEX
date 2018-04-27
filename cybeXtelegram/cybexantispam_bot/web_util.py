@@ -8,7 +8,7 @@ from bottle import request, abort
 from telegram import Update
 from telegram.ext import Dispatcher
 
-from nosticker_bot import init_bot_with_mode, register_handlers
+from cybexantispam_bot import init_bot_with_mode, register_handlers
 
 
 def setup_web_app(app, mode='production'):

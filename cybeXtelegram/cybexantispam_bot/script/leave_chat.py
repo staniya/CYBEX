@@ -1,5 +1,5 @@
 from telegram import Bot
-from nosticker_bot import get_token
+from cybexantispam_bot import get_token
 
 
 def setup_arg_parser(parser):
