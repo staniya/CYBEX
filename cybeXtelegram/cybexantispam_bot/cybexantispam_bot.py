@@ -679,9 +679,9 @@ def get_token(mode):
     with open('var/config.json') as inp:
         config = json.load(inp)
     if mode == 'test':
-        return config["cybexUserRestrictionTestBot"]['test_api_token']
+        return config["cybexantispam_test_bot"]['test_api_token']
     else:
-        return config["cybexUserRestrictionBot"]['api_token']
+        return config["cybexantispam_bot"]['api_token']
 
 
 def init_updater_with_mode(mode):
