@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 from collections import Counter
+import os
+from pprint import pprint
+from pathlib import Path
+import yaml
+import sys
 import re
 import jsondate
 import json
 import logging
+
 import telebot
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
@@ -24,12 +30,20 @@ from util import find_username_links, find_external_links, fetch_user_type
 from database import connect_db
 
 
-HELP = """*No Sticker Bot Help*
+HELP = """
+*CYBEX Anti-Spam Bot Help*
 
-This simple telegram bot was created to solve only one task - to delete FUCKINGLY annoying stickers. Since you add bot to the group and allow it to sticker messages it starts deleting any sticker posted to the group.
+*cybexantispam_bot deletes all posts by users that joined less than a month ago that contain:*
+1. links
+2. images
+3. videos
+4. stickers
+5. documents
+6. locations
+7. audio
+7. voice recordings
 
 *Usage*
-
 1. Add [@cybexantispam_bot](https://t.me/cybexantispam_bot) to your group.
 2. Go to group settings / users list / promote user to admin
 3. Enable only one item: Delete messages
@@ -37,20 +51,53 @@ This simple telegram bot was created to solve only one task - to delete FUCKINGL
 5. Enjoy!
 
 *Commands*
-
 /help - display this help message
-/stat - display simple statistics about number of deleted stickers
+/stat - display simple statistics about number of deleted messages
+/cybexantispamset publog=[yes|no] - enable/disable messages to group about deleted posts
+/cybexantispamset safehours=[int] - number in hours, how long new users are restricted to post links and forward posts, default is 24 hours (Allowed value is number between 1 and 8760)
+/cybexantispamget publog - get value of publog setting
+/cybexantispamget safehours - get value of safehours setting
+
+*How to log deleted messages to private channel*
+Add bot to the channel as admin. Write /setlog to the channel. Forward message to the group.
+Write /unsetlog in the group to disable logging to channel.
+You can control format of logs with /setlogformat <format> command sent to the channel. The argument of this command could be: simple, json, forward or any combination of items delimited by space e.g. json,forward:
+simple - display basic info about message + the
+text of message (or caption text of photo/video)
+json - display full message data in JSON format
+forward - simply forward message to the channel (just message, no data about chat or author).
 
 *Questions, Feedback*
-
-Support group: [@tgrambots](https://t.me/tgrambots)
+Support chat - [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
+Author's telegram -  [@Shinno](https://t.me/Shinno1002)
+Use github issues to report bugs - [github issues](https://github.com/staniya/CYBEX/issues)
 """
 
-########## code imported from daysandbx_bot.py ############
+'''
+# Load the config file
+# Set the Botname / Token
+'''
+PATH = os.path.dirname(os.path.abspath(__file__))
+config_file = PATH + '/var/config.yaml'
+my_file = Path(config_file)
+if my_file.is_file():
+    with open(config_file, encoding="utf-8") as fp:
+        config = yaml.load(fp)
+else:
+    pprint('config.yaml file does not exist')
+    sys.exit()
+
+# production
+BOTNAME = config['BOT_USERNAME']
+TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
+
+# test
+BOTNAME_TEST = config['BOT_USERNAME1']
+TELEGRAM_BOT_TOKEN_TEST = config['BOT_TOKEN1']
 
 SUPERUSER_IDS = {547143881}
 # List of keys allowed to use in set_setting/get_setting
-GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safe_hours')
+GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safehours')
 # Channel of global channel to translate ALL spam
 GLOBAL_LOG_CHANNEL_ID = {
     'production': -1001313978621,
@@ -242,9 +289,9 @@ def handle_set_get(bot, update):
         delete_message_safe(bot, msg)
         # bot.send_message(msg.chat.id, 'Access denied')
         return
-    re_cmd_set = re.compile(r'^/cybexantispam_set (publog|safe_hours)=(.+)$')
-    re_cmd_get = re.compile(r'^/cybexantispam_get (publog|safe_hours)=()$')
-    if msg.text.startswith('/cybexantispam_set'):
+    re_cmd_set = re.compile(r'^/cybexantispamset (publog|safehours)=(.+)$')
+    re_cmd_get = re.compile(r'^/cybexantispamget (publog|safehours)=()$')
+    if msg.text.startswith('/cybexantispamset'):
         match = re_cmd_set.match(msg.text)
         action = 'SET'
     else:
@@ -270,18 +317,18 @@ def handle_set_get(bot, update):
                                          ))))
             else:
                 bot.send_message(msg.chat.id, 'Invalid public_notification value. Should be: yes or no')
-        elif key == 'safe_hours':
+        elif key == 'safehours':
             if not val.isdigit():
-                bot.send_message(msg.chat.id, 'Invalid safe_hours value. Should be a number')
+                bot.send_message(msg.chat.id, 'Invalid safehours value. Should be a number')
             val_int = int(val)
             max_hours = 24 * 365
             if val_int < 0 or val_int > max_hours:
                 bot.send_message(msg.chat.id,
-                                 'Invalid safe_hours value. Should be a number between 1 and {}'.format(max_hours))
+                                 'Invalid safehours value. Should be a number between 1 and {}'.format(max_hours))
             set_setting(db, GROUP_CONFIG, msg.chat.id, key, val_int)
             bot.send_message(
                 msg.chat.id,
-                'Set safe_hours to {} for group {}'.format(
+                'Set safehours to {} for group {}'.format(
                     val_int, '{}'.format(
                         msg.chat.username if msg.chat.username else '#{}'.format(
                             msg.chat.id,
@@ -381,10 +428,10 @@ def get_delete_reason(msg):
     join_date = get_join_date(msg.chat.id, msg.from_user.id)
     if join_date is None:
         return False, None
-    safe_hours = get_setting(
-        GROUP_CONFIG, msg.chat.id, 'safe_hours', DEFAULT_SAFE_HOURS
+    safehours = get_setting(
+        GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
     )
-    if datetime.utcnow() - timedelta(hours=safe_hours) > join_date:
+    if datetime.utcnow() - timedelta(hours=safehours) > join_date:
         return False, None
     locations = [
         ('text', msg.entities or []),
@@ -676,28 +723,25 @@ def create_bot(api_token, db):
 
 def get_token(mode):
     assert mode in ('test', 'production')
-    with open('var/config.json') as inp:
-        config = json.load(inp)
     if mode == 'test':
-        return config["cybexantispam_test_bot"]['test_api_token']
+        return TELEGRAM_BOT_TOKEN_TEST
     else:
-        return config["cybexantispam_bot"]['api_token']
+        return TELEGRAM_BOT_TOKEN
 
 
 def init_updater_with_mode(mode):
     assert mode in ('test', 'production')
-    token = Updater(token=get_token(mode), workers=32)
-    db = connect_db
-    create_bot(token, db)
-    return token
+    # TODO deal with the create_bot function later
+    # db = connect_db()
+    # create_bot(TELEGRAM_BOT_TOKEN, db)
+    return Updater(token=get_token(mode), workers=32)
 
 
 def init_bot_with_mode(mode):
     assert mode in ('test', 'production')
-    token = Bot(token=get_token(mode))
-    db = connect_db
-    create_bot(token, db)
-    return token
+    # db = connect_db()
+    # create_bot(TELEGRAM_BOT_TOKEN, db)
+    return Bot(token=get_token(mode))
 
 
 def register_handlers(dispatcher, mode):
@@ -711,7 +755,7 @@ def register_handlers(dispatcher, mode):
     ))
     dispatcher.add_handler(CommandHandler('stat', handle_stat))
     dispatcher.add_handler(CommandHandler(
-        ['cybexantispam_set', 'cybexantispam_get'], handle_set_get
+        ['cybexantispamset', 'cybexantispamget'], handle_set_get
     ))
     dispatcher.add_handler(CommandHandler('setlog', handle_setlog))
     dispatcher.add_handler(CommandHandler('unsetlog', handle_unsetlog))

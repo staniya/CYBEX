@@ -1,4 +1,4 @@
-pytelegrambotapi
+pytelegrambotapi===2.0.3
 pymongo
 jsondate
 bottle
