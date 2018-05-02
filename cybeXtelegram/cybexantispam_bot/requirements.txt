@@ -3,9 +3,10 @@ pymongo
 jsondate
 bottle
 gunicorn
-collections
 python-telegram-bot
 runscript
 telebot
 requests==2.7.0
 telebot
+pathlib
+pyyaml
