@@ -5,7 +5,7 @@ from collections import Counter
 from argparse import ArgumentParser
 from pymongo import MongoClient
 from datetime import datetime, timedelta
-# from cybexantispam_bot import TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_TOKEN_TEST
+from cybexantispam_bot import TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_TOKEN_TEST
 
 
 HELP = """
@@ -268,9 +268,9 @@ def main():
     opts = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG)
     if opts.mode == 'test':
-        token = '589779835:AAF_0bncAaeB7qRngj5AoC74Zh_ax8k23h0'
+        token = TELEGRAM_BOT_TOKEN_TEST
     else:
-        token = '547236194:AAE6wmCcTXdlUseg01LA3yWaooX3HFC9gB8'
+        token = TELEGRAM_BOT_TOKEN
     db = MongoClient()['nosticker']
     bot = create_bot(token, db)
     bot.polling()
