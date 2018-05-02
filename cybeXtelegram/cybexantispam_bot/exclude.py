@@ -6,6 +6,7 @@ import html
 from traceback import format_exc
 
 # import jsondate
+import jsondate
 import yaml
 import sys
 import logging
@@ -13,6 +14,8 @@ import telebot
 from collections import Counter
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
+
+from telegram.ext import Updater
 
 from database import connect_db
 from model import load_group_config
@@ -95,16 +98,15 @@ GLOBAL_LOG_CHANNEL_ID = {
 }
 # Default time to reject link and forwarded posts from new user
 DEFAULT_SAFE_HOURS = 720
-db = connect_db()
-
-# Some shitty global code
-JOINED_USERS = {}
-GROUP_CONFIG = load_group_config(db)
-DELETE_EVENTS = {}
 
 
 def create_bot(api_token, db):
     bot = telebot.TeleBot(api_token)
+
+    # Some shitty global code
+    JOINED_USERS = {}
+    GROUP_CONFIG = load_group_config(db)
+    DELETE_EVENTS = {}
 
     @bot.message_handler(content_types=['sticker'])
     def handle_sticker(msg):
@@ -255,7 +257,8 @@ def create_bot(api_token, db):
         })
 
     @bot.message_handler(content_types=['new_chat_members'])
-    def handle_new_chat_members(msg):
+    def handle_new_chat_members(update):
+        msg = update.message
         for user in msg.new_chat_members:
             now = datetime.utcnow()
             JOINED_USERS[(msg.chat.id, user.id)] = now
@@ -271,13 +274,11 @@ def create_bot(api_token, db):
             )
 
     @bot.message_handler(commands=['start', 'help'])
-    def handle_start_help(msg):
+    def handle_start_help(update):
+        msg = update.effective_message
+        save_message_event('start_help', msg)
         if msg.chat.type == 'private':
-            bot.reply_to(
-                msg.chat.id,
-                HELP,
-                parse_mode='Markdown',
-            )
+            bot.reply_to(msg, HELP, parse_mode='Markdown')
         else:
             if msg.text.strip() in (
                     '/start', '/start@cybexantispam_bot', '/start@cybexantispam_test_bot',
@@ -316,7 +317,8 @@ def create_bot(api_token, db):
             return default
 
     @bot.message_handler(commands=['cybexantispamset', 'cybexantispamget'])
-    def handle_set_get(msg):
+    def handle_set_get(update):
+        msg = update.effective_message
         if msg.chat.type not in ('group', 'supergroup'):
             bot.send_message(msg.chat.id, "This command has to be called from a group")
             return
@@ -324,8 +326,8 @@ def create_bot(api_token, db):
         admins = bot.get_chat_administrators(msg.chat.id)
         admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
         if msg.from_user.id not in admin_ids:
-            bot.delete_message(bot, msg)
-            bot.send_message(msg.chat.id, 'Access denied')
+            delete_message_safe(msg)
+            # bot.send_message(msg.chat.id, 'Access denied')
             return
         re_cmd_set = re.compile(r'^/cybexantispamset (publog|safehours)=(.+)$')
         re_cmd_get = re.compile(r'^/cybexantispamget (publog|safehours)=()$')
@@ -389,8 +391,101 @@ def create_bot(api_token, db):
             else:
                 raise
 
+    def log_event_to_channel(msg, reason, chid, formats):
+        if msg.chat.username:
+            from_chatname = '<a href="https://t.me/{}">@{}</a>'.format(
+                msg.chat.username, msg.chat.username
+            )
+        else:
+            from_chatname = '#{}'.format(msg.chat.id)
+        user_display_name = format_user_display_name(msg.from_user)
+        from_info = (
+            'Chat: {}\nUser: <a href=tg://user?id={}">{}</a>'.format(
+                from_chatname, msg.from_user.id, user_display_name)
+        )
+        if 'forward' in formats:
+            try:
+                # TODO fix this
+                msg.forward_message(
+                    chid, msg.chat.id, msg.message_id
+                )
+            except Exception as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'MESSAGE_ID_INVALID' in str(ex) or
+                        'message to forward not found' in str(ex)
+                ):
+                    logging.error(
+                        'Failed to forward spam message: {}'.format(ex)
+                    )
+                else:
+                    raise
+        if 'json' in formats:
+            msg_dump = msg.to_dict()
+            msg_dump['meta'] = {
+                'reason': reason,
+                'date': datetime.utcnow(),
+            }
+            dump = jsondate.dumps(msg_dump, indent=4, ensure_ascii=False)
+            # fix jsondate
+            dump = html.escape(dump)
+            content = '{}\n<pre>{}</pre>'.format(from_info, dump)
+            try:
+                bot.reply_to(chid, content, parse_mode='Markdown')
+            except Exception as ex:
+                if 'message is too long' in str(ex):
+                    logging.error('Failed to log message to channel: {}'.format(ex))
+                else:
+                    raise
+            if 'simple' in formats:
+                text = html.escape(msg.text or msg.caption)
+                content = (
+                    '{}\nReason: {}\nContent:\n<pre>{}</pre>'.format(
+                        from_info, reason, text)
+                )
+                bot.reply_to(chid, content, parse_mode='Markdown')
+
+    @bot.message_handler(commands=['setlogformat'])
+    def handle_setlogformat(update):
+        msg = update.effective_message
+        # possible options:
+        # /setlogformat [json|forward]*
+
+        if msg.chat.type != 'channel':
+            admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
+            if msg.from_user.id not in admin_ids:
+                # Silently ignore /setlogformat command from non-admin in non-channel
+                delete_message_safe(msg)
+            else:
+                bot.send_message(msg.chat.id, 'This comand has to be called from a channel')
+            return
+        valid_formats = ('json', 'forward', 'simple')
+        formats = msg.text.split(' ')[-1].split(',')
+        if any(x not in valid_formats for x in formats):
+            bot.send_message(msg.chat.id, 'Invalid arguments. Valid choices: {}'.format(
+                ', '.join(valid_formats), ))
+            return
+        set_setting(GROUP_CONFIG, msg.chat.id, 'logformat', formats)
+        bot.send_message(msg.chat.id, 'Set logformat for this channel')
+
+    def save_message_event(event_type, msg, **kwargs):
+        event = msg.to_dict()
+        event.update({
+            'date': datetime.utcnow(),
+            'type': event_type,
+        })
+        event.update(**kwargs)
+        db.event.save(event)
+
     @bot.message_handler(commands=['setlog'])
-    def handle_setlog(msg):
+    def handle_setlog(update):
+        msg = update.effective_message
         admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
         if msg.chat.type not in ('group', 'supergroup'):
             bot.send_message(msg.chat.id, 'This command has to be called from the group')
@@ -418,7 +513,8 @@ def create_bot(api_token, db):
             bot.send_message(msg.chat.id, 'Set log channel for group {}'.format(tgid))
 
     @bot.message_handler(commands=['unsetlog'])
-    def handle_unsetlog(msg):
+    def handle_unsetlog(update):
+        msg = update.effective_message
         admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
         if msg.chat.type not in ('group', 'supergroups'):
             if msg.from_user.id not in admin_ids:
@@ -467,7 +563,6 @@ def create_bot(api_token, db):
         else:
             logging.debug('Doing network request for type of {}'.format(username))
             user_type = fetch_user_type(username)
-            # TODO look at external link
             logging.debug('Result is: {}'.format(user_type))
             if user_type:
                 db.user.find_one_and_update(
@@ -528,49 +623,16 @@ def create_bot(api_token, db):
         else:
             return '#{}'.format(user.id)
 
-    def log_event_to_channel(msg, chid, formats):
-        if msg.chat.username:
-            from_chatname = '<a href="https://t.me/{}">@{}</a>'.format(
-                msg.chat.username, msg.chat.username
-            )
-        else:
-            from_chatname = '#{}'.format(msg.chat.id)
-        user_display_name = format_user_display_name(msg.from_user)
-        from_info = (
-            'Chat: {}\nUser: <a href=tg://user?id={}">{}</a>'.format(
-                from_chatname, msg.from_user.id, user_display_name)
-        )
-        if 'forward' in formats:
-            try:
-                msg.forward_message(
-                    chid, msg.chat.id, msg.message_id
-                )
-            except Exception as ex:
-                db.fail.save({
-                    'date': datetime.utcnow(),
-                    'reason': str(ex),
-                    'traceback': format_exc(),
-                    'chat_id': msg.chat.id,
-                    'msg_id': msg.message_id,
-                })
-                if (
-                        'MESSAGE_ID_INVALID' in str(ex) or
-                        'message to forward not found' in str(ex)
-                ):
-                    logging.error(
-                        'Failed to forward spam message: {}'.format(ex)
-                    )
-                else:
-                    raise
-
     @bot.message_handler(content_types=['text'])
-    def handle_any_message(mode, msg):
+    def handle_any_message(mode, update):
+        msg = update.effective_message
         if msg.chat.type in ('channel', 'private'):
             return
 
         to_delete, reason = get_delete_reason(msg)
         if to_delete:
             try:
+                save_message_event('delete_msg', msg, reason=reason)
                 user_display_name = format_user_display_name(msg.from_user)
                 event_key = (msg.chat.id, msg.from_user.id)
                 if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
@@ -630,12 +692,9 @@ def create_bot(api_token, db):
                         raise
 
     @bot.message_handler(commands=['statlink'])
-    def handle_stat_link(msg):
+    def handle_stat_link(update):
+        msg = update.effective_message
         if msg.chat.type != 'private':
-            if msg.text.strip() in (
-                    '/statlink', '/statlink@cybexantispam_bot', '/statlink@cybexantispam_test_bot',
-            ):
-                bot.delete_message(msg.chat.id, msg.message_id)
             return
         cnt = {
             'delete_msg': [],
@@ -708,19 +767,34 @@ def create_bot(api_token, db):
     return bot
 
 
+def get_token(mode):
+    assert mode in ('test', 'production')
+    if mode == 'test':
+        return TELEGRAM_BOT_TOKEN_TEST
+    else:
+        return TELEGRAM_BOT_TOKEN
+
+
+def init_updater_with_mode(mode):
+    assert mode in ('test', 'production')
+    db = connect_db()
+    return Updater(create_bot(get_token(mode), db), workers=32)
+
+
+def init_bot_with_mode(mode):
+    assert mode in ('test', 'production')
+    db = connect_db()
+    return create_bot(get_token(mode), db)
+
+
 def main():
     parser = ArgumentParser()
     parser.add_argument('--mode')
     opts = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG)
-    if opts.mode == 'test':
-        token = TELEGRAM_BOT_TOKEN_TEST
-    else:
-        token = TELEGRAM_BOT_TOKEN
-    db = connect_db()
-    # TODO fix database repetition
-    bot = create_bot(token, db)
-    bot.polling()
+    updater = init_updater_with_mode(opts.mode)
+    updater.bot.delete_webhook()
+    updater.start_polling()
 
 
 if __name__ == '__main__':

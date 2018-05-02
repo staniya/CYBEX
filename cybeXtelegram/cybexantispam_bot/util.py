@@ -1,7 +1,7 @@
-import urllib
-import logging
 import re
-import urllib
+from urllib.parse import quote
+from urllib.request import urlopen
+import logging
 
 RE_USERNAME = re.compile(r'@[a-z][_a-z0-9]{4,30}', re.I)
 RE_SIMPLE_LINK = re.compile(
@@ -19,9 +19,9 @@ def find_external_links(text):
 
 
 def fetch_user_type(username):
-    url = 'https://t.me/{}'.format(urllib.quote(username))
+    url = 'https://t.me/{}'.format(quote(username))
     try:
-        data = urllib.urlopen(url, timeout=2).read().decode('utf-8')
+        data = urlopen(url, timeout=2).read().decode('utf-8')
     except OSError:
         logging.exception('Failed to fetch URL: {}'.format(url))
         return None
