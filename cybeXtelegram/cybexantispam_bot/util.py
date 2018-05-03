@@ -1,8 +1,5 @@
 import re
-try:
-    from urllib.parse import quote
-except ImportError:
-     from urlparse import quote
+from urllib.parse import quote
 try:
     from urllib.request import urlopen
 except ImportError as e:

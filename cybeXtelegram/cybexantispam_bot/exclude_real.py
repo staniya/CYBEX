@@ -1,11 +1,10 @@
 import re
 
 import telebot
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 def create_bot(api_token, db):
-    # TODO add a link function here too
     bot = telebot.TeleBot(api_token)
 
     @bot.message_handler(content_types=['sticker'])

@@ -13,6 +13,7 @@ from pprint import pprint
 from traceback import format_exc
 
 import jsondate
+import telegram
 import yaml
 from telegram import ParseMode, Bot
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
@@ -95,7 +96,6 @@ GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safehours')
 # Channel of global channel to translate ALL spam
 GLOBAL_LOG_CHANNEL_ID = {
     'production': -1001313978621,
-    'test': -1001283245540,
 }
 # Default time to reject link and forwarded posts from new user
 DEFAULT_SAFE_HOURS = 720
@@ -105,6 +105,8 @@ db = connect_db()
 JOINED_USERS = {}
 GROUP_CONFIG = load_group_config(db)
 DELETE_EVENTS = {}
+
+bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
 
 
 def get_join_date(chat_id, user_id):
@@ -123,21 +125,11 @@ def get_join_date(chat_id, user_id):
             return None
 
 
-def save_message_event(db, event_type, msg, **kwargs):
-    event = msg.to_dict()
-    event.update({
-        'date': datetime.utcnow(),
-        'type': event_type,
-    })
-    event.update(**kwargs)
-    db.event.save(event)
-
-
 def delete_message_safe():
     try:
-        db = connect_db()
+        dbs = connect_db()
         token = TELEGRAM_BOT_TOKEN
-        create_bot(token, db)
+        create_bot(token, dbs)
     except Exception as ex:
         if (
                 'message to delete not found' in str(ex)
@@ -150,7 +142,7 @@ def delete_message_safe():
             raise
 
 
-def set_setting(db, group_config, group_id, key, val):
+def set_setting(group_config, group_id, key, val):
     assert key in GROUP_SETTING_KEYS
     db.config.find_one_and_update(
         {
@@ -190,9 +182,12 @@ def handle_new_chat_members(update):
 
 
 @run_async
-def handle_start_help(bot, update):
+def handle_start_help(event_type, update):
     msg = update.effective_message
-    save_message_event(db, 'start_help', msg)
+    db.event.save({
+        'date': datetime.utcnow(),
+        'type': event_type,
+    })
     if msg.chat.type == 'private':
         bot.send_message(
             msg.chat.id,
@@ -220,7 +215,7 @@ def handle_start_help(bot, update):
 
 
 @run_async
-def handle_stat_link(bot, update):
+def handle_stat_link(update):
     msg = update.effective_message
     if msg.chat.type != 'private':
         return
@@ -248,8 +243,9 @@ def handle_stat_link(bot, update):
     bot.send_message(msg.chat.id, ret, parse_mode=ParseMode.MARKDOWN)
 
 
-def handle_stat(bot, update):
+def handle_stat(update):
     global query
+    # TODO don't know if this is correct
     msg = update.effective_message
     if msg.chat.type != 'private':
         if msg.text.strip() in (
@@ -296,11 +292,11 @@ def handle_stat(bot, update):
         '\n'.join('  %s (%d)' % x for x in top_ystd.most_common()
                   ))
     ret += '\n\nTop 10 week:\n%s' % '\n'.join('  %s (%d)' % x for x in top_week.most_common(10))
-    bot.reply_to(msg, ret)
+    bot.send_message(msg.chat.id, ret, parse_mode=ParseMode.MARKDOWN)
 
 
 @run_async
-def handle_set_get(bot, update):
+def handle_set_get(update):
     msg = update.effective_message
     if msg.chat.type not in ('group', 'supergroup'):
         bot.send_message(msg.chat.id, "This command has to be called from a group")
@@ -332,7 +328,7 @@ def handle_set_get(bot, update):
         if key == 'publog':
             if val in ('yes', 'no'):
                 val_bool = (val == 'yes')
-                set_setting(db, GROUP_CONFIG, msg.chat.id, key, val_bool)
+                set_setting(GROUP_CONFIG, msg.chat.id, key, val_bool)
                 bot.send_message(msg.chat.id, 'Set public_notification to {} for group {}'
                                  .format(val_bool,
                                          '@{}'.format(msg.chat.username if msg.chat.username else '#{}'.format(
@@ -348,7 +344,7 @@ def handle_set_get(bot, update):
             if val_int < 0 or val_int > max_hours:
                 bot.send_message(msg.chat.id,
                                  'Invalid safehours value. Should be a number between 1 and {}'.format(max_hours))
-            set_setting(db, GROUP_CONFIG, msg.chat.id, key, val_int)
+            set_setting(GROUP_CONFIG, msg.chat.id, key, val_int)
             bot.send_message(
                 msg.chat.id,
                 'Set safehours to {} for group {}'.format(
@@ -362,7 +358,7 @@ def handle_set_get(bot, update):
 
 
 @run_async
-def handle_setlogformat(bot, update):
+def handle_setlogformat(update):
     msg = update.effective_message
     # possible options:
     # /setlogformat [json|forward]*
@@ -381,12 +377,12 @@ def handle_setlogformat(bot, update):
         bot.send_message(msg.chat.id, 'Invalid arguments. Valid choices: {}'.format(
             ', '.join(valid_formats), ))
         return
-    set_setting(db, GROUP_CONFIG, msg.chat.id, 'logformat', formats)
+    set_setting(GROUP_CONFIG, msg.chat.id, 'logformat', formats)
     bot.send_message(msg.chat.id, 'Set logformat for this channel')
 
 
 @run_async
-def handle_setlog(bot, update):
+def handle_setlog(update):
     msg = update.effective_message
     admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
     if msg.chat.type not in ('group', 'supergroup'):
@@ -410,13 +406,13 @@ def handle_setlog(bot, update):
             # bot.send_message(msg.chat.id, 'Access denied')
             return
 
-        set_setting(db, GROUP_CONFIG, msg.chat.id, 'log_channel_id', channel.id)
+        set_setting(GROUP_CONFIG, msg.chat.id, 'log_channel_id', channel.id)
         tgid = '@{}'.format(msg.chat.username if msg.chat.username else '#{}'.format(msg.chat.id))
         bot.send_message(msg.chat.id, 'Set log channel for group {}'.format(tgid))
 
 
 @run_async
-def handle_unsetlog(bot, update):
+def handle_unsetlog(update):
     msg = update.effective_message
     admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
     if msg.chat.type not in ('group', 'supergroups'):
@@ -437,22 +433,22 @@ def handle_unsetlog(bot, update):
             bot.send_message(msg.chat.id, 'Access denied')
         return
 
-    set_setting(db, GROUP_CONFIG, msg.chat.id, 'log_channel_id', None)
+    set_setting(GROUP_CONFIG, msg.chat.id, 'log_channel_id', None)
     tgid = '@{}'.format(msg.chat.username if msg.chat.username else '#{}'.format(msg.chat.id))
     bot.send_message(msg.chat.id, 'Unset log channel for group {}'.format(tgid))
 
 
-def process_user_type(db, username):
+def process_user_type(username):
     username = username.lower()
-    logging.debug('Querying %s type from db' % username)
+    logging.debug('Querying {} type from db'.format(username))
     user = db.user.find_one({'username': username})
     if user:
-        logging.debug('Record found, type is: %s' % user['type'])
+        logging.debug('Record found, type is: {}'.format(user['type']))
         return user['type']
     else:
-        logging.debug('Doing network request for type of %s' % username)
+        logging.debug('Doing network request for type of {}'.format(username))
         user_type = fetch_user_type(username)
-        logging.debug('Result is: %s' % user_type)
+        logging.debug('Result is: {}'.format(user_type))
         if user_type:
             db.user.find_one_and_update(
                 {'username': username},
@@ -493,7 +489,7 @@ def get_delete_reason(msg):
             if ent.type == 'mention':
                 text = msg.text if scope == 'text' else msg.caption
                 username = text[ent.offset:ent.offset + ent.length].lstrip('@')
-                user_type = process_user_type(db, username)
+                user_type = process_user_type(username)
                 if user_type in ('group', 'channel'):
                     return True, '@-link to group/channel'
         if msg.forward_from or msg.forward_from_chat:
@@ -515,7 +511,7 @@ def format_user_display_name(user):
         return '#{}'.format(user.id)
 
 
-def log_event_to_channel(bot, msg, reason, chid, formats):
+def log_event_to_channel(msg, reason, chid, formats):
     if msg.chat.username:
         from_chatname = '<a href="https://t.me/{}">@{}</a>'.format(
             msg.chat.username, msg.chat.username
@@ -575,7 +571,7 @@ def log_event_to_channel(bot, msg, reason, chid, formats):
 
 
 @run_async
-def handle_any_message(mode, bot, update):
+def handle_any_message(mode, update):
     msg = update.effective_message
     if msg.chat.type in ('channel', 'private'):
         return
@@ -583,8 +579,7 @@ def handle_any_message(mode, bot, update):
     to_delete, reason = get_delete_reason(msg)
     if to_delete:
         try:
-            save_message_event(db, 'delete_msg', msg, reason=reason)
-            user_display_name = format_user_display_name(msg.from_user)
+            # user_display_name = format_user_display_name(msg.from_user)
             event_key = (msg.chat.id, msg.from_user.id)
             if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
                 # Notify about spam from same user only one time per hour
@@ -594,7 +589,7 @@ def handle_any_message(mode, bot, update):
                         (datetime.utcnow() - timedelta(hours=1))
                 ):
                     ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
-                        html.escape(user_display_name), reason
+                        html.escape(msg.chat.username), reason
                     )
                     bot.send_message(
                         msg.chat.id, ret, parse_mode=ParseMode.HTML
@@ -612,7 +607,7 @@ def handle_any_message(mode, bot, update):
                     GROUP_CONFIG, chid, 'logformats', default=['simple']
                 )
                 try:
-                    log_event_to_channel(bot, msg, reason, chid, formats)
+                    log_event_to_channel(msg, reason, chid, formats)
                 except Exception as ex:
                     logging.exception(
                         'Failed to send notification to channel [{}]'.format(
@@ -643,26 +638,18 @@ def handle_any_message(mode, bot, update):
                     raise
 
 
-def get_token(mode):
-    assert mode in ('test', 'production')
-    if mode == 'test':
-        return TELEGRAM_BOT_TOKEN_TEST
-    else:
-        return TELEGRAM_BOT_TOKEN
-
-
-def init_updater_with_mode(mode):
-    assert mode in ('test', 'production')
-    return Updater(token=get_token(mode), workers=32)
-
-
 def init_bot_with_mode(mode):
     assert mode in ('test', 'production')
-    return Bot(token=get_token(mode))
+    return Bot(token=TELEGRAM_BOT_TOKEN)
 
 
-def register_handlers(dispatcher, mode):
-    assert mode in ('production', 'test')
+def main():
+    parser = ArgumentParser()
+    parser.add_argument('--mode', default='production')
+    # opts = parser.parse_args()
+    logging.basicConfig(level=logging.DEBUG)
+    updater = Updater(bot=bot, workers=32)
+    dispatcher = updater.dispatcher
 
     dispatcher.add_handler(MessageHandler(
         Filters.status_update.new_chat_members, handle_new_chat_members
@@ -678,20 +665,12 @@ def register_handlers(dispatcher, mode):
     dispatcher.add_handler(CommandHandler('setlog', handle_setlog))
     dispatcher.add_handler(CommandHandler('unsetlog', handle_unsetlog))
     dispatcher.add_handler(MessageHandler(
-        Filters.all, partial(handle_any_message, mode), edited_updates=True
+        Filters.all, partial(handle_any_message), edited_updates=True
     ))
 
-
-def main():
-    parser = ArgumentParser()
-    parser.add_argument('--mode', default='production')
-    opts = parser.parse_args()
-    logging.basicConfig(level=logging.DEBUG)
-    updater = init_updater_with_mode(opts.mode)
-    dispatcher = updater.dispatcher
-    register_handlers(dispatcher, opts.mode)
     updater.bot.delete_webhook()
-    updater.start_polling()
+    updater.start_polling(timeout=0, clean=False)
+    updater.idle()
 
 
 if __name__ == '__main__':
