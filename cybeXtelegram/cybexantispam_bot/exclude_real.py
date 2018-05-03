@@ -71,11 +71,11 @@ else:
 
 # production
 BOTNAME = config['BOT_USERNAME']
-TELEGRAM_BOT_TOKEN = config['547236194:AAE6wmCcTXdlUseg01LA3yWaooX3HFC9gB8']
+TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
 
 # test
 BOTNAME_TEST = config['BOT_USERNAME1']
-TELEGRAM_BOT_TOKEN_TEST = config['589779835:AAF_0bncAaeB7qRngj5AoC74Zh_ax8k23h0']
+TELEGRAM_BOT_TOKEN_TEST = config['BOT_TOKEN1']
 
 
 def create_bot(api_token, db):
