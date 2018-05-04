@@ -9,6 +9,7 @@ syntax:glob
 
 .env
 pip-log.txt
+.production
 
 syntax:regexp
 ^var/
