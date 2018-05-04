@@ -67,7 +67,7 @@ Use github issues to report bugs - [github issues](https://github.com/staniya/CY
 # Set the Botname / Token
 '''
 PATH = os.path.dirname(os.path.abspath(__file__))
-config_file = PATH + '/config.yaml'
+config_file = PATH + '/var/config.yaml'
 my_file = Path(config_file)
 if my_file.is_file():
     with open(config_file) as fp:
