@@ -1,0 +1,11 @@
+pyTelegramBotAPI
+pymongo
+jsondate
+bottle
+gunicorn
+python-telegram-bot
+runscript
+telebot
+requests==2.7.0
+pathlib
+PyYAML
