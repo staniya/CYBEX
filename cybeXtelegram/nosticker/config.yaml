@@ -1,0 +1,12 @@
+# cybexantispamrealbot
+# The username of your bot as set with the botfather
+BOT_USERNAME: "CYBEX Anti-Spam-Real"
+# The bot token supplied by botfather
+BOT_TOKEN: "482354560:AAHdAy2Zo-92hEpf1P54bCBDKSed47CHzO4"
+
+
+# cybexantispamrealtestbot
+# The username of your bot as set with the botfather
+BOT_USERNAME1: "CYBEX Anti-Spam-Real-Test"
+# The bot token supplied by botfather
+BOT_TOKEN1: "510719175:AAHsvF0jCfgZS_X7jPIhuNXQDiTdQ1WM4jw"
