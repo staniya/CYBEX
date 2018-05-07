@@ -11,3 +11,5 @@
 pip-log.txt
 /var/
 /conf/
+/production/
+/.production/
