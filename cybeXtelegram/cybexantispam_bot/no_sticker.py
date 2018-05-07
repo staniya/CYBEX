@@ -34,12 +34,26 @@ HELP = """
 *Usage*
 1. Add [@cybexantispam_bot](https://t.me/cybexantispam_bot) to your group.
 2. Go to group settings / users list / promote user to admin
-3. Enable: Delete messages
+3. Enable only one item: Delete messages
 4. Click SAVE button
+5. Enjoy!
 
 *Commands*
 /help - display this help message
 /stat - display simple statistics about number of deleted messages
+/cybexantispamrealbotset publog=[yes|no] - enable/disable messages to group about deleted posts
+/cybexantispamrealbotset safehours=[int] - number in hours, how long new users are restricted to post links and forward posts, default is 24 hours (Allowed value is number between 1 and 8760)
+/cybexantispamrealbotget publog - get value of publog setting
+/cybexantispamrealbotget safehours - get value of safehours setting
+
+*How to log deleted messages to private channel*
+Add bot to the channel as admin. Write /setlog to the channel. Forward message to the group.
+Write /unsetlog in the group to disable logging to channel.
+You can control format of logs with /setlogformat <format> command sent to the channel. The argument of this command could be: simple, json, forward or any combination of items delimited by space e.g. json,forward:
+simple - display basic info about message + the
+text of message (or caption text of photo/video)
+json - display full message data in JSON format
+forward - simply forward message to the channel (just message, no data about chat or author).
 
 *Questions, Feedback*
 Support chat - [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
@@ -75,7 +89,7 @@ GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safehours')
 # Channel of global channel to translate ALL spam
 GLOBAL_LOG_CHANNEL_ID = {
     'production': -1001313978621,
-    'test': -1001283245540,
+    'test':  -1001283245540,
 }
 # Default time to reject link and forwarded posts from new user
 DEFAULT_SAFE_HOURS = 720
@@ -429,6 +443,20 @@ def create_bot(api_token, db):
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
             return False, None
+        # if re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+        #               msg.text):
+        #     db.event.save({
+        #         'type': 'delete_link',
+        #         'chat_id': msg.chat.id,
+        #         'chat_username': msg.chat.username,
+        #         'user_id': msg.from_user.id,
+        #         'username': msg.from_user.username,
+        #         'date': datetime.utcnow(),
+        #         'link': {
+        #             'links': 'link deleted',
+        #         },
+        #     })
+        #     return True, 'external link'
         locations = [
             ('text', msg.entities or []),
             ('caption', msg.caption_entities or []),
@@ -593,10 +621,40 @@ def create_bot(api_token, db):
     def handle_all_messages(msg):
         if msg.chat.type in ('channel', 'private'):
             return
+        # delete_reason = [handle_sticker(msg), handle_document(msg), handle_photo(msg), handle_audio(msg),
+        #                  handle_voice(msg), handle_video(msg), handle_location(msg), handle_contact(msg),
+        #                  handle_video_note(msg), get_delete_link(msg)]
+        # for delete in delete_reason:
         to_delete, reason = get_delete_link(msg)
         if to_delete:
             try:
                 bot.delete_message(msg.chat.id, msg.message_id)
+                # user_display_name = format_user_display_name(msg.from_user)
+                # if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
+                #     # Notify about spam from same user only one time per hour
+                #     ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
+                #         html.escape(user_display_name), reason
+                #     )
+                #     bot.reply_to(msg.chat.id, ret, parse_mode='Markdown')
+
+                # ids = {GLOBAL_LOG_CHANNEL_ID['production']}
+                # channel_id = get_setting(
+                #     GROUP_CONFIG, msg.chat.id, 'log_channel_id'
+                # )
+                # if channel_id:
+                #     ids.add(channel_id)
+                # for chid in ids:
+                #     formats = get_setting(
+                #         GROUP_CONFIG, chid, 'logformats', default=['simple']
+                #     )
+                #     try:
+                #         log_event_to_channel(bot, msg, reason, chid, formats)
+                #     except Exception as ex:
+                #         logging.exception(
+                #             'Failed to send notification to channel [{}]'.format(
+                #                 chid
+                #             )
+                #         )
             except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
