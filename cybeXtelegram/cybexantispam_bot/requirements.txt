@@ -1,4 +1,4 @@
-pytelegrambotapi
+pyTelegramBotAPI
 pymongo
 jsondate
 bottle
@@ -7,6 +7,5 @@ python-telegram-bot
 runscript
 telebot
 requests==2.7.0
-telebot
 pathlib
-pyyaml
+PyYAML
