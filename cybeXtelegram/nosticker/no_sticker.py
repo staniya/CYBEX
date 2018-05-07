@@ -41,10 +41,10 @@ HELP = """
 *Commands*
 /help - display this help message
 /stat - display simple statistics about number of deleted messages
-/cybexantispamrealbot_set publog=[yes|no] - enable/disable messages to group about deleted posts
-/cybexantispamrealbot_set safehours=[int] - number in hours, how long new users are restricted to post links and forward posts, default is 24 hours (Allowed value is number between 1 and 8760)
-/cybexantispamrealbot_get publog - get value of publog setting
-/cybexantispamrealbot_get safehours - get value of safehours setting
+/cybexantispamrealbotset publog=[yes|no] - enable/disable messages to group about deleted posts
+/cybexantispamrealbotset safehours=[int] - number in hours, how long new users are restricted to post links and forward posts, default is 24 hours (Allowed value is number between 1 and 8760)
+/cybexantispamrealbotget publog - get value of publog setting
+/cybexantispamrealbotget safehours - get value of safehours setting
 
 *How to log deleted messages to private channel*
 Add bot to the channel as admin. Write /setlog to the channel. Forward message to the group.
@@ -60,7 +60,6 @@ Support chat - [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
 Author's telegram -  [@Shinno](https://t.me/Shinno1002)
 Use github issues to report bugs - [github issues](https://github.com/staniya/CYBEX/issues)
 """
-
 
 '''
 # Load the config file
@@ -107,11 +106,13 @@ def create_bot(api_token, db):
     def handle_sticker(msg):
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            return logging.error("No join_date")
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
-        if datetime.utcnow() - join_date < timedelta(hours=safehours):
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
                 'type': 'delete_sticker',
@@ -126,11 +127,13 @@ def create_bot(api_token, db):
     def handle_document(msg):
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            return logging.error("No join_date")
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
-        if datetime.utcnow() - join_date < timedelta(hours=safehours):
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
                 'type': 'delete_document',
@@ -152,11 +155,13 @@ def create_bot(api_token, db):
     def handle_photo(msg):
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            return logging.error("No join_date")
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
-        if datetime.utcnow() - join_date < timedelta(hours=safehours):
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
                 'type': 'delete_photo',
@@ -175,11 +180,13 @@ def create_bot(api_token, db):
     def handle_audio(msg):
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            return logging.error("No join_date")
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
-        if datetime.utcnow() - join_date < timedelta(hours=safehours):
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
                 'type': 'delete_audio',
@@ -201,11 +208,13 @@ def create_bot(api_token, db):
     def handle_voice(msg):
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            return logging.error("No join_date")
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
-        if datetime.utcnow() - join_date < timedelta(hours=safehours):
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
                 'type': 'delete_voice',
@@ -225,11 +234,13 @@ def create_bot(api_token, db):
     def handle_video(msg):
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            return logging.error("No join_date")
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
-        if datetime.utcnow() - join_date < timedelta(hours=safehours):
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
                 'type': 'delete_video',
@@ -249,11 +260,13 @@ def create_bot(api_token, db):
     def handle_location(msg):
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            return logging.error("No join_date")
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
-        if datetime.utcnow() - join_date < timedelta(hours=safehours):
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
                 'type': 'delete_location',
@@ -272,11 +285,13 @@ def create_bot(api_token, db):
     def handle_contact(msg):
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            return logging.error("No join_date")
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
-        if datetime.utcnow() - join_date < timedelta(hours=safehours):
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
                 'type': 'delete_contact',
@@ -295,11 +310,13 @@ def create_bot(api_token, db):
     def handle_video_note(msg):
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            return logging.error("No join_date")
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
-        if datetime.utcnow() - join_date < timedelta(hours=safehours):
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
                 'type': 'delete_video_note',
@@ -313,27 +330,6 @@ def create_bot(api_token, db):
                     # TODO get file_id for this one
                 },
             })
-
-    # # @bot.message_handler(content_types=['text'])
-    # def handle_link(msg):
-    #     urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', msg.text)
-    #     # RE_SIMPLE_LINK = re.compile(
-    #     #     r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+",
-    #     #     re.X | re.I | re.U
-    #     # )
-    #     if urls:
-    #         bot.delete_message(msg.chat.id, msg.message_id)
-    #         db.event.save({
-    #             'type': 'delete_link',
-    #             'chat_id': msg.chat.id,
-    #             'chat_username': msg.chat.username,
-    #             'user_id': msg.from_user.id,
-    #             'username': msg.from_user.username,
-    #             'date': datetime.utcnow(),
-    #             'link': {
-    #                 'links': 'link deleted',
-    #             },
-    #         })
 
     @bot.message_handler(commands=['start', 'help'])
     def handle_start_help(msg):
@@ -420,7 +416,7 @@ def create_bot(api_token, db):
                 )
             return user_type
 
-    def get_delete_reason(msg):
+    def get_delete_link(msg):
         if (
                 msg.from_user.username == 'Shinno'
                 and (msg.text == 'del' or msg.caption == 'del')
@@ -434,17 +430,31 @@ def create_bot(api_token, db):
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
             return False, None
+        # if re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+        #               msg.text):
+        #     db.event.save({
+        #         'type': 'delete_link',
+        #         'chat_id': msg.chat.id,
+        #         'chat_username': msg.chat.username,
+        #         'user_id': msg.from_user.id,
+        #         'username': msg.from_user.username,
+        #         'date': datetime.utcnow(),
+        #         'link': {
+        #             'links': 'link deleted',
+        #         },
+        #     })
+        #     return True, 'external link'
         locations = [
             ('text', msg.entities or []),
             ('caption', msg.caption_entities or []),
         ]
         for scope, entities in locations:
             for ent in entities:
+                # TODO maybe need to change all of this to True later
                 if ent.type in ('url', 'text_link'):
                     return True, 'external link'
-                # TODO maybe need to change all of this to True later
                 if ent.type in ('email',):
-                    return False, 'email'
+                    return True, 'email'
                 if ent.type == 'mention':
                     text = msg.text if scope == 'text' else msg.caption
                     username = text[ent.offset:ent.offset + ent.length].lstrip('@')
@@ -471,7 +481,7 @@ def create_bot(api_token, db):
                 upsert=True,
             )
 
-    @bot.message_handler(commands=['cybexantispamrealbot_set', 'cybexantispamrealbot_get'])
+    @bot.message_handler(commands=['cybexantispamrealbotset', 'cybexantispamrealbotget'])
     def handle_set_get(msg):
         if msg.chat.type not in ('group', 'supergroup'):
             bot.send_message(msg.chat.id, "This command has to be called from a group")
@@ -483,9 +493,9 @@ def create_bot(api_token, db):
             bot.delete_message(msg.chat.id, msg.message_id)
             # bot.send_message(msg.chat.id, 'Access denied')
             return
-        re_cmd_set = re.compile(r'^/cybexantispamrealbot_set (publog|safehours)=(.+)$')
-        re_cmd_get = re.compile(r'^/cybexantispamrealbot_get (publog|safehours)=()$')
-        if msg.text.startswith('/cybexantispamrealbot_set'):
+        re_cmd_set = re.compile(r'^/cybexantispamrealbotset (publog|safehours)=(.+)$')
+        re_cmd_get = re.compile(r'^/cybexantispamrealbotget (publog|safehours)=()$')
+        if msg.text.startswith('/cybexantispamrealbotset'):
             match = re_cmd_set.match(msg.text)
             action = 'SET'
         else:
@@ -594,24 +604,18 @@ def create_bot(api_token, db):
         else:
             return '#{}'.format(user.id)
 
-    @bot.message_handler(commands=['text'])
-    def handle_link(msg):
+    @bot.message_handler(func=lambda msg: True)
+    def handle_all_messages(msg):
         if msg.chat.type in ('channel', 'private'):
             return
-        to_delete, reason = get_delete_reason(msg)
+        # delete_reason = [handle_sticker(msg), handle_document(msg), handle_photo(msg), handle_audio(msg),
+        #                  handle_voice(msg), handle_video(msg), handle_location(msg), handle_contact(msg),
+        #                  handle_video_note(msg), get_delete_link(msg)]
+        # for delete in delete_reason:
+        to_delete, reason = get_delete_link(msg)
         if to_delete:
             try:
-                db.event.save({
-                                'type': 'delete_link',
-                                'chat_id': msg.chat.id,
-                                'chat_username': msg.chat.username,
-                                'user_id': msg.from_user.id,
-                                'username': msg.from_user.username,
-                                'date': datetime.utcnow(),
-                                'link': {
-                                    'links': 'link deleted',
-                                },
-                            })
+                bot.delete_message(msg.chat.id, msg.message_id)
                 user_display_name = format_user_display_name(msg.from_user)
                 event_key = (msg.chat.id, msg.from_user.id)
                 if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
@@ -645,28 +649,25 @@ def create_bot(api_token, db):
                 #                 chid
                 #             )
                 #         )
-            finally:
-                try:
-                    bot.delete_message(msg.chat.id, msg.message_id)
-                except Exception as ex:
-                    db.fail.save({
-                        'date': datetime.utcnow(),
-                        'reason': str(ex),
-                        'traceback': format_exc(),
-                        'chat_id': msg.chat.id,
-                        'msg_id': msg.message_id,
-                    })
-                    if (
-                            'message to delete not found' in str(ex)
-                            # or "message can\'t be deleted" in str(ex)
-                            or "be delete" in str(ex)
-                            or "MESSAGE_ID_INVALID" in str(ex)
-                            or 'message to forward not found' in str(ex)
-                    ):
-                        logging.error('Failed to process spam message: {}'.format(
-                            ex))
-                    else:
-                        raise
+            except Exception as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be delete" in str(ex)
+                        or "MESSAGE_ID_INVALID" in str(ex)
+                        or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     return bot
 
