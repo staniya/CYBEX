@@ -40,6 +40,8 @@ HELP = """
 *Commands*
 /help - display this help message
 /stat - display simple statistics about number of deleted messages
+/cybexantispamrealbotset publog=[yes|no] - enable/disable messages to group about deleted posts
+/cybexantispamrealbotset safehours=[int] - number in hours, how long new users are restricted to post links and forward posts, default is 24 hours (Allowed value is number between 1 and 8760)
 
 *Questions, Feedback*
 Support chat - [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
