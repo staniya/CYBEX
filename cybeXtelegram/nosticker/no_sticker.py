@@ -88,14 +88,16 @@ SUPERUSER_IDS = {547143881}
 GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safehours')
 # Channel of global channel to translate ALL spam
 GLOBAL_LOG_CHANNEL_ID = {
-    'production': -1001313978621
+    'production': -1001313978621,
+    'test':  -1001283245540,
 }
 # Default time to reject link and forwarded posts from new user
 DEFAULT_SAFE_HOURS = 720
+db = connect_db()
 
 # Some shitty global code
 JOINED_USERS = {}
-GROUP_CONFIG = load_group_config(db=connect_db())
+GROUP_CONFIG = load_group_config(db)
 DELETE_EVENTS = {}
 
 
@@ -340,7 +342,18 @@ def create_bot(api_token, db):
                     '/start', '/start@cybexantispamrealbot', '/start@cybexantispamrealtestbot',
                     '/help', '/help@cybexantispamrealbot', '/help@cybexantispamrealtestbot'
             ):
-                bot.delete_message(msg.chat.id, msg.message_id)
+                try:
+                    bot.delete_message(msg.chat.id, msg.message_id)
+                except Exception as ex:
+                    if (
+                            'message to delete not found' in str(ex)
+                            # or "message can\'t be deleted" in str(ex)
+                            or "be deleted" in str(ex)
+                            or "MESSAGE_ID_INVALID" in str(ex)
+                    ):
+                        logging.error('Failed to delete command message {}'.format(ex))
+                    else:
+                        raise
 
     def get_join_date(chat_id, user_id):
         key = (chat_id, user_id)
@@ -616,20 +629,13 @@ def create_bot(api_token, db):
         if to_delete:
             try:
                 bot.delete_message(msg.chat.id, msg.message_id)
-                user_display_name = format_user_display_name(msg.from_user)
-                event_key = (msg.chat.id, msg.from_user.id)
-                if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
-                    # Notify about spam from same user only one time per hour
-                    if (
-                            event_key not in DELETE_EVENTS
-                            or DELETE_EVENTS[event_key] <
-                            (datetime.utcnow() - timedelta(hours=1))
-                    ):
-                        ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
-                            html.escape(user_display_name), reason
-                        )
-                        bot.reply_to(msg.chat.id, ret, parse_mode='Markdown')
-                DELETE_EVENTS[event_key] = datetime.utcnow()
+                # user_display_name = format_user_display_name(msg.from_user)
+                # if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
+                #     # Notify about spam from same user only one time per hour
+                #     ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
+                #         html.escape(user_display_name), reason
+                #     )
+                #     bot.reply_to(msg.chat.id, ret, parse_mode='Markdown')
 
                 # ids = {GLOBAL_LOG_CHANNEL_ID['production']}
                 # channel_id = get_setting(
@@ -649,7 +655,7 @@ def create_bot(api_token, db):
                 #                 chid
                 #             )
                 #         )
-            except Exception as ex:
+            except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
                     'reason': str(ex),
