@@ -1,7 +1,7 @@
 pyTelegramBotAPI
 pymongo
 jsondate
-bottl
+bottle
 gunicorn
 python-telegram-bot
 runscript
