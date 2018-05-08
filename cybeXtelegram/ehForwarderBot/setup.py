@@ -36,7 +36,7 @@ setup(
     ],
     install_requires=[
         "PyYaml", 'telegram', 'dateparser', 'feedparser', 'gdax', 'requests', 'datefinder', 'beautifulsoup4', 'telethon',
-        'bottle', 'jsondate', 'telebot', 'pymongo'
+        'bottle', 'jsondate', 'telebot', 'pymongo', 'sshtunnel'
     ],
     entry_points={
         "console_scripts": ['ehforwarderbot = ehforwarderbot.__main__:main']
