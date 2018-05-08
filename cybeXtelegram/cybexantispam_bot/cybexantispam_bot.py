@@ -69,56 +69,6 @@ Use github issues to report bugs - [github issues](https://github.com/staniya/CY
 # Load the config file
 # Set the Botname / Token
 '''
-PATH = os.path.dirname(os.path.abspath(__file__))
-config_file = PATH + '/var/config.yaml'
-my_file = Path(config_file)
-if my_file.is_file():
-    with open(config_file, encoding="utf-8") as fp:
-        config = yaml.load(fp)
-else:
-    pprint('config.yaml file does not exist')
-    sys.exit()
-
-# production
-BOTNAME = config['BOT_USERNAME']
-TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
-
-# test
-BOTNAME_TEST = config['BOT_USERNAME1']
-TELEGRAM_BOT_TOKEN_TEST = config['BOT_TOKEN1']
-
-SUPERUSER_IDS = {547143881}
-# List of keys allowed to use in set_setting/get_setting
-GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safehours')
-# Channel of global channel to translate ALL spam
-GLOBAL_LOG_CHANNEL_ID = {
-    'production': -1001313978621,
-    'test': -1001283245540,
-}
-# Default time to reject link and forwarded posts from new user
-DEFAULT_SAFE_HOURS = 720
-db = connect_db()
-
-# Some shitty global code
-JOINED_USERS = {}
-GROUP_CONFIG = load_group_config(db)
-DELETE_EVENTS = {}
-
-
-def get_join_date(chat_id, user_id):
-    key = (chat_id, user_id)
-    if key in JOINED_USERS:
-        return JOINED_USERS[key]
-    else:
-        item = db.joined_user.find_one(
-            {'chat_id': chat_id, 'user_id': user_id},
-            {'date': 1, '_id': 0}
-        )
-        if item:
-            JOINED_USERS[key] = item['date']
-            return JOINED_USERS[key]
-        else:
-            return None
 
 
 def save_message_event(db, event_type, msg, **kwargs):
@@ -144,51 +94,6 @@ def delete_message_safe(bot, msg):
             pass
         else:
             raise
-
-
-def set_setting(db, group_config, group_id, key, val):
-    assert key in GROUP_SETTING_KEYS
-    db.config.find_one_and_update(
-        {
-            'group_id': group_id,
-            'key': key,
-        },
-        {'$set': {'value': val}},
-        upsert=True,
-    )
-    group_config[(group_id, key)] = val
-
-
-def get_setting(group_config, group_id, key, default=None):
-    assert key in GROUP_SETTING_KEYS
-    try:
-        return group_config[(group_id, key)]
-    except KeyError:
-        return default
-
-
-def process_user_type(db, username):
-    username = username.lower()
-    logging.debug('Querying {} type from db'.format(username))
-    user = db.user.find_one({'username': username})
-    if user:
-        logging.debug('Record found, type is: {}'.format(user['type']))
-        return user['type']
-    else:
-        logging.debug('Doing network request for type of {}'.format(username))
-        user_type = fetch_user_type(username)
-        logging.debug('Result is: {}'.format(user_type))
-        if user_type:
-            db.user.find_one_and_update(
-                {'username': username},
-                {'$set': {
-                    'username': username,
-                    'type': user_type,
-                    'added': datetime.utcnow(),
-                }},
-                upsert=True
-            )
-        return user_type
 
 
 @run_async

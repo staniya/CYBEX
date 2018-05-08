@@ -42,6 +42,17 @@ HELP = """
 /stat - display simple statistics about number of deleted messages
 /cybexantispamrealbotset publog=[yes|no] - enable/disable messages to group about deleted posts
 /cybexantispamrealbotset safehours=[int] - number in hours, how long new users are restricted to post links and forward posts, default is 24 hours (Allowed value is number between 1 and 8760)
+/cybexantispamget publog - get value of publog setting
+/cybexantispamget safehours - get value of safehours setting
+
+*How to log deleted messages to private channel*
+Add bot to the channel as admin. Write /setlog to the channel. Forward message to the group.
+Write /unsetlog in the group to disable logging to channel.
+You can control format of logs with /setlogformat <format> command sent to the channel. The argument of this command could be: simple, json, forward or any combination of items delimited by space e.g. json,forward:
+simple - display basic info about message + the
+text of message (or caption text of photo/video)
+json - display full message data in JSON format
+forward - simply forward message to the channel (just message, no data about chat or author).
 
 *Questions, Feedback*
 Support chat - [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
@@ -68,6 +79,7 @@ BOTNAME = config['BOT_USERNAME']
 TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
 
 # test
+# TODO when deploying, uncomment this
 BOTNAME_TEST = config['BOT_USERNAME1']
 TELEGRAM_BOT_TOKEN_TEST = config['BOT_TOKEN1']
 
@@ -92,26 +104,26 @@ DELETE_EVENTS = {}
 def create_bot(api_token, db):
     bot = telebot.TeleBot(api_token)
 
-    @bot.message_handler(content_types=['sticker'])
-    def handle_sticker(msg):
-        join_date = get_join_date(msg.chat.id, msg.from_user.id)
-        if join_date is None:
-            return logging.error("No join_date")
-        safehours = get_setting(
-            GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
-        )
-        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
-        else:
-            bot.delete_message(msg.chat.id, msg.message_id)
-            db.event.save({
-                'type': 'delete_sticker',
-                'chat_id': msg.chat.id,
-                'chat_username': msg.chat.username,
-                'user_id': msg.from_user.id,
-                'username': msg.from_user.username,
-                'date': datetime.utcnow(),
-            })
+    # @bot.message_handler(content_types=['sticker'])
+    # def handle_sticker(msg):
+    #     join_date = get_join_date(msg.chat.id, msg.from_user.id)
+    #     if join_date is None:
+    #         return logging.error("No join_date")
+    #     safehours = get_setting(
+    #         GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
+    #     )
+    #     if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+    #         return logging.error("User has been in the chat longer than the set safe hours")
+    #     else:
+    #         bot.delete_message(msg.chat.id, msg.message_id)
+    #         db.event.save({
+    #             'type': 'delete_sticker',
+    #             'chat_id': msg.chat.id,
+    #             'chat_username': msg.chat.username,
+    #             'user_id': msg.from_user.id,
+    #             'username': msg.from_user.username,
+    #             'date': datetime.utcnow(),
+    #         })
 
     @bot.message_handler(content_types=['document'])
     def handle_document(msg):
@@ -630,6 +642,7 @@ def main():
     if opts.mode == 'test':
         token = TELEGRAM_BOT_TOKEN_TEST
     else:
+        # TODO in real production, change this
         token = TELEGRAM_BOT_TOKEN
     db = connect_db()
     bot = create_bot(token, db)
