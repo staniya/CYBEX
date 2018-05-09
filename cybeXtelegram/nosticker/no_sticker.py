@@ -60,6 +60,7 @@ Author's telegram -  [@Shinno](https://t.me/Shinno1002)
 Use github issues to report bugs - [github issues](https://github.com/staniya/CYBEX/issues)
 """
 
+# TODO turn application into a daemon
 '''
 # Load the config file
 # Set the Botname / Token
@@ -74,9 +75,9 @@ else:
     pprint('config.yaml file does not exist')
     sys.exit()
 
-# production
-BOTNAME = config['BOT_USERNAME']
-TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
+# # production
+# BOTNAME = config['BOT_USERNAME']
+# TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
 
 # test
 # TODO when deploying, uncomment this
@@ -104,26 +105,27 @@ DELETE_EVENTS = {}
 def create_bot(api_token, db):
     bot = telebot.TeleBot(api_token)
 
-    # @bot.message_handler(content_types=['sticker'])
-    # def handle_sticker(msg):
-    #     join_date = get_join_date(msg.chat.id, msg.from_user.id)
-    #     if join_date is None:
-    #         return logging.error("No join_date")
-    #     safehours = get_setting(
-    #         GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
-    #     )
-    #     if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-    #         return logging.error("User has been in the chat longer than the set safe hours")
-    #     else:
-    #         bot.delete_message(msg.chat.id, msg.message_id)
-    #         db.event.save({
-    #             'type': 'delete_sticker',
-    #             'chat_id': msg.chat.id,
-    #             'chat_username': msg.chat.username,
-    #             'user_id': msg.from_user.id,
-    #             'username': msg.from_user.username,
-    #             'date': datetime.utcnow(),
-    #         })
+    @bot.message_handler(content_types=['sticker'])
+    def handle_sticker(msg):
+        join_date = get_join_date(msg.chat.id, msg.from_user.id)
+        if join_date is None:
+            return logging.error("No join_date")
+        safehours = get_setting(
+            GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
+        )
+        if datetime.utcnow() - timedelta(hours=safehours) > join_date:
+            return logging.error("User has been in the chat longer than the set safe hours")
+        else:
+            # TODO if you want to delete stickers, enable message below
+            # bot.delete_message(msg.chat.id, msg.message_id)
+            db.event.save({
+                'type': 'delete_sticker',
+                'chat_id': msg.chat.id,
+                'chat_username': msg.chat.username,
+                'user_id': msg.from_user.id,
+                'username': msg.from_user.username,
+                'date': datetime.utcnow(),
+            })
 
     @bot.message_handler(content_types=['document'])
     def handle_document(msg):
@@ -464,6 +466,78 @@ def create_bot(api_token, db):
                 return False, 'forwarded'
             return False, None
 
+    @bot.message_handler(commands=['setlogformat'])
+    # TODO you may have to make this a regex handler
+    def handle_setlogformat(msg):
+        if msg.chat.type != 'channel':
+            admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
+            if msg.from_user.id not in admin_ids:
+                # Silently ignore /setlogformat command from non-admin in non-channel
+                bot.delete_message(msg.chat.id, msg.message_id)
+            else:
+                bot.send_message(msg.chat.id, 'This command has to be called from a channel')
+            return
+        valid_formats = ('json', 'forward', 'simple')
+        formats = msg.text.split(' ')[-1].split(',')
+        if any(x not in valid_formats for x in formats):
+            bot.send_message(msg.chat.id, 'Invalid arguments. Valid choices: {}'.format(
+                ', '.join(valid_formats), ))
+            return
+        set_setting(GROUP_CONFIG, msg.chat.id, 'logformat', formats)
+        bot.send_message(msg.chat.id, 'Set logformat for this channel')
+
+    @bot.message_handler(commands=['setlog'])
+    def handle_setlog(msg):
+        admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
+        if msg.chat.type not in ('group', 'supergroup'):
+            bot.send_message("This command has to be called from a group or a supergroup")
+            return
+        if not msg.forward_from_chat or msg.forward_from_chat.type != 'channel':
+            if msg.from_user.id not in admin_ids:
+                # Silently ignore /setlog command from non-admin
+                bot.delete_message(msg.chat.id, msg.message_id)
+                pass
+            else:
+                bot.send_message(msg.chat.id, 'Command /setlog must be forwarded from channel')
+                return
+            channel = msg.forward_from_chat
+            if bot.get_me().id not in admin_ids:
+                bot.send_message(msg.chat.id, 'Assign me as an administrator in the chat')
+                return
+
+            if msg.from_user.id not in admin_ids:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                bot.send_message(msg.chat.id, "You are not an administrator")
+                return
+
+            set_setting(GROUP_CONFIG, msg.chat.id, 'log_channel_id', channel.id)
+            tgid = '@{}'.format(msg.chat.username if msg.chat.username else '#{}'.format(msg.chat.id))
+            bot.send_message(msg.chat.id, 'Set log channel for group {}'.format(tgid))
+
+    @bot.message_handler(commands=['unsetlog'])
+    def handle_unsetlog(msg):
+        admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
+        if msg.chat.type not in ('group', 'supergroup'):
+            if msg.from_user.id not in admin_ids:
+                # Silently ignore /setlog command from non-admin
+                bot.delete_message(msg.chat.id, msg.message_id)
+                pass
+            else:
+                bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
+            return
+
+        if msg.from_user.id not in admin_ids:
+            if msg.from_user.id not in admin_ids:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                pass
+            else:
+                bot.send_message(msg.chat.id, "You are not an administrator")
+            return
+
+        set_setting(GROUP_CONFIG, msg.chat.id, 'log_channel_id', None)
+        tgid = '@{}'.format(msg.chat.username if msg.chat.username else '#{}'.format(msg.chat.id))
+        bot.send_message(msg.chat.id, 'Unset log channel for group {}'.format(tgid))
+
     @bot.message_handler(content_types=['new_chat_members'])
     def handle_new_chat_members(msg):
         for user in msg.new_chat_members:
@@ -643,7 +717,7 @@ def main():
         token = TELEGRAM_BOT_TOKEN_TEST
     else:
         # TODO in real production, change this
-        token = TELEGRAM_BOT_TOKEN
+        token = TELEGRAM_BOT_TOKEN_TEST
     db = connect_db()
     bot = create_bot(token, db)
     bot.polling()
