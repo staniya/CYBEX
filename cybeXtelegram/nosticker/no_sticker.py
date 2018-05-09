@@ -5,6 +5,7 @@ from pathlib import Path
 from traceback import format_exc
 import urllib
 
+import jsondate
 import yaml
 import html
 import sys
@@ -107,14 +108,21 @@ def create_bot(api_token, db):
 
     @bot.message_handler(content_types=['sticker'])
     def handle_sticker(msg):
+        if (
+                msg.from_user.username == 'Shinno'
+                and (msg.text == 'del' or msg.caption == 'del')
+        ):
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return logging.error("No join_date")
+            logging.error("No join_date")
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
+            logging.error("User has been in the chat longer than the set safe hours")
+            return False, None
         else:
             # TODO if you want to delete stickers, enable message below
             # bot.delete_message(msg.chat.id, msg.message_id)
@@ -126,17 +134,25 @@ def create_bot(api_token, db):
                 'username': msg.from_user.username,
                 'date': datetime.utcnow(),
             })
+            return False, 'sticker'
 
     @bot.message_handler(content_types=['document'])
     def handle_document(msg):
+        if (
+                msg.from_user.username == 'Shinno'
+                and (msg.text == 'del' or msg.caption == 'del')
+        ):
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return logging.error("No join_date")
+            logging.error("No join_date")
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
+            logging.error("User has been in the chat longer than the set safe hours")
+            return False, None
         else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
@@ -154,17 +170,25 @@ def create_bot(api_token, db):
                     'thumb': msg.document.thumb.__dict__ if msg.document.thumb else None,
                 },
             })
+            return True, 'document'
 
     @bot.message_handler(content_types=['photo'])
     def handle_photo(msg):
+        if (
+                msg.from_user.username == 'Shinno'
+                and (msg.text == 'del' or msg.caption == 'del')
+        ):
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return logging.error("No join_date")
+            logging.error("No join_date")
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
+            logging.error("User has been in the chat longer than the set safe hours")
+            return False, None
         else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
@@ -179,17 +203,25 @@ def create_bot(api_token, db):
                     # TODO how to get the file_id for this one?
                 },
             })
+            return True, 'photo'
 
     @bot.message_handler(content_types=['audio'])
     def handle_audio(msg):
+        if (
+                msg.from_user.username == 'Shinno'
+                and (msg.text == 'del' or msg.caption == 'del')
+        ):
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return logging.error("No join_date")
+            logging.error("No join_date")
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
+            logging.error("User has been in the chat longer than the set safe hours")
+            return False, None
         else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
@@ -207,17 +239,25 @@ def create_bot(api_token, db):
                     'mime_type': msg.audio.mime_type,
                 },
             })
+            return True, 'audio'
 
     @bot.message_handler(content_types=['voice'])
     def handle_voice(msg):
+        if (
+                msg.from_user.username == 'Shinno'
+                and (msg.text == 'del' or msg.caption == 'del')
+        ):
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return logging.error("No join_date")
+            logging.error("No join_date")
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
+            logging.error("User has been in the chat longer than the set safe hours")
+            return False, None
         else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
@@ -233,17 +273,25 @@ def create_bot(api_token, db):
                     'mime_type': msg.voice.mime_type,
                 },
             })
+            return True, 'voice'
 
     @bot.message_handler(content_types=['video'])
     def handle_video(msg):
+        if (
+                msg.from_user.username == 'Shinno'
+                and (msg.text == 'del' or msg.caption == 'del')
+        ):
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return logging.error("No join_date")
+            logging.error("No join_date")
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
+            logging.error("User has been in the chat longer than the set safe hours")
+            return False, None
         else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
@@ -259,17 +307,25 @@ def create_bot(api_token, db):
                     'mime_type': msg.video.mime_type,
                 },
             })
+            return True, 'video'
 
     @bot.message_handler(content_types=['location'])
     def handle_location(msg):
+        if (
+                msg.from_user.username == 'Shinno'
+                and (msg.text == 'del' or msg.caption == 'del')
+        ):
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return logging.error("No join_date")
+            logging.error("No join_date")
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
+            logging.error("User has been in the chat longer than the set safe hours")
+            return False, None
         else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
@@ -284,17 +340,25 @@ def create_bot(api_token, db):
                     'longitude': msg.location.longitude,
                 },
             })
+            return True, 'location'
 
     @bot.message_handler(content_types=['contact'])
     def handle_contact(msg):
+        if (
+                msg.from_user.username == 'Shinno'
+                and (msg.text == 'del' or msg.caption == 'del')
+        ):
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return logging.error("No join_date")
+            logging.error("No join_date")
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
+            logging.error("User has been in the chat longer than the set safe hours")
+            return False, None
         else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
@@ -309,17 +373,25 @@ def create_bot(api_token, db):
                     'first_name': msg.contact.first_name,
                 },
             })
+            return True, 'contact'
 
     @bot.message_handler(content_types=['video_note'])
     def handle_video_note(msg):
+        if (
+                msg.from_user.username == 'Shinno'
+                and (msg.text == 'del' or msg.caption == 'del')
+        ):
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return logging.error("No join_date")
+            logging.error("No join_date")
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return logging.error("User has been in the chat longer than the set safe hours")
+            logging.error("User has been in the chat longer than the set safe hours")
+            return False, None
         else:
             bot.delete_message(msg.chat.id, msg.message_id)
             db.event.save({
@@ -334,6 +406,7 @@ def create_bot(api_token, db):
                     # TODO get file_id for this one
                 },
             })
+            return True, 'video_note'
 
     @bot.message_handler(commands=['start', 'help'])
     def handle_start_help(msg):
@@ -490,7 +563,7 @@ def create_bot(api_token, db):
     def handle_setlog(msg):
         admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
         if msg.chat.type not in ('group', 'supergroup'):
-            bot.send_message("This command has to be called from a group or a supergroup")
+            bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
             return
         if not msg.forward_from_chat or msg.forward_from_chat.type != 'channel':
             if msg.from_user.id not in admin_ids:
@@ -632,7 +705,7 @@ def create_bot(api_token, db):
             types = ['delete_sticker', 'delete_document', 'delete_photo', 'delete_audio',
                      'delete_voice', 'delete_video', 'delete_location', 'delete_contact',
                      'delete_video_note', 'delete_link']
-            # TODO check if this is correct
+            # TODO fix the format for this
             for t_type in types:
                 query = {'$and': [
                     {'type': t_type},
@@ -676,6 +749,66 @@ def create_bot(api_token, db):
             return user.first_name
         else:
             return '#{}'.format(user.id)
+
+    def log_event_to_channel(bot, msg, reason, chid, formats):
+        if msg.chat.username:
+            from_chatname = '<a href="https://t.me/{}">@{}</a>'.format(
+                msg.chat.username, msg.chat.username
+            )
+        else:
+            from_chatname = '#{}'.format(msg.chat.id)
+        user_display_name = format_user_display_name(msg.from_user)
+        from_info = (
+            'Chat: {}\nUser: <a href=tg://user?id={}">{}</a>'.format(
+                from_chatname, msg.from_user.id, user_display_name)
+        )
+        if 'forward' in formats:
+            try:
+                bot.forward_message(
+                    chid, msg.chat.id, msg.message_id
+                )
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                    'MESSAGE_ID_INVALID' in str(ex) or
+                    'message to forward not found' in str(ex)
+                ):
+                    logging.error(
+                        'Failed to forward spam message: {}'.format(ex)
+                    )
+                else:
+                    raise
+
+        if 'json' in formats:
+            # TODO to_dict() and jsondate may cause an error
+            msg_dump = msg.to_dict()
+            msg_dump['meta'] = {
+                'reason': reason,
+                'date': datetime.utcnow(),
+            }
+            dump = jsondate.dumps(msg_dump, indent=4, ensure_ascii=False)
+            dump = html.escape(dump)
+            content = '{}\n<pre>{}</pre>'.format(from_info, dump)
+            try:
+                bot.reply_to(chid, content, parse_mode='HTML')
+            except Exception as ex:
+                if 'message is too long' in str(ex):
+                    logging.error('Failed to log message to channel: {}'.format(ex))
+                else:
+                    raise
+            if 'simple' in formats:
+                text = html.escape(msg.text or msg.caption)
+                content = (
+                    '{}\nReason: {}\nContent:\n<pre>{}</pre>'.format(
+                        from_info, reason, text)
+                )
+                bot.reply_to(chid, content, parse_mode='HTML')
 
     @bot.message_handler(func=lambda msg: True)
     def handle_all_messages(msg):
