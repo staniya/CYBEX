@@ -81,94 +81,6 @@ def save_message_event(db, event_type, msg, **kwargs):
     db.event.save(event)
 
 
-def delete_message_safe(bot, msg):
-    try:
-        bot.delete_message(msg.chat.id, msg.message_id)
-    except Exception as ex:
-        if (
-                'message to delete not found' in str(ex)
-                # or "message can\'t be deleted" in str(ex)
-                or "be deleted" in str(ex)  # quick fix
-                or "MESSAGE_ID_INVALID" in str(ex)
-        ):
-            pass
-        else:
-            raise
-
-
-def format_user_display_name(user):
-    if user.first_name and user.last_name:
-        return '{} {}'.format(
-            user.first_name,
-            user.last_name,
-        )
-    elif user.first_name:
-        return user.first_name
-    elif user.username:
-        return user.first_name
-    else:
-        return '#{}'.format(user.id)
-
-
-def log_event_to_channel(bot, msg, reason, chid, formats):
-    if msg.chat.username:
-        from_chatname = '<a href="https://t.me/{}">@{}</a>'.format(
-            msg.chat.username, msg.chat.username
-        )
-    else:
-        from_chatname = '#{}'.format(msg.chat.id)
-    user_display_name = format_user_display_name(msg.from_user)
-    from_info = (
-        'Chat: {}\nUser: <a href=tg://user?id={}">{}</a>'.format(
-            from_chatname, msg.from_user.id, user_display_name)
-    )
-    if 'forward' in formats:
-        try:
-            bot.forward_message(
-                chid, msg.chat.id, msg.message_id
-            )
-        except Exception as ex:
-            db.fail.save({
-                'date': datetime.utcnow(),
-                'reason': str(ex),
-                'traceback': format_exc(),
-                'chat_id': msg.chat.id,
-                'msg_id': msg.message_id,
-            })
-            if (
-                'MESSAGE_ID_INVALID' in str(ex) or
-                'message to forward not found' in str(ex)
-            ):
-                logging.error(
-                    'Failed to forward spam message: {}'.format(ex)
-                )
-            else:
-                raise
-    if 'json' in formats:
-        msg_dump = msg.to_dict()
-        msg_dump['meta'] = {
-            'reason': reason,
-            'date': datetime.utcnow(),
-        }
-        dump = jsondate.dumps(msg_dump, indent=4, ensure_ascii=False)
-        dump = html.escape(dump)
-        content = '{}\n<pre>{}</pre>'.format(from_info, dump)
-        try:
-            bot.send_message(chid, content, parse_mode=ParseMode.HTML)
-        except Exception as ex:
-            if 'message is too long' in str(ex):
-                logging.error('Failed to log message to channel: {}'.format(ex))
-            else:
-                raise
-        if 'simple' in formats:
-            text = html.escape(msg.text or msg.caption)
-            content = (
-                '{}\nReason: {}\nContent:\n<pre>{}</pre>'.format(
-                    from_info, reason, text)
-            )
-            bot.send_message(chid, content, parse_mode=ParseMode.HTML)
-
-
 @run_async
 def handle_any_message(mode, bot, update):
     msg = update.effective_message
@@ -243,8 +155,6 @@ def register_handlers(dispatcher, mode):
     dispatcher.add_handler(RegexHandler(
         r'^/setlogformat ', handle_setlogformat, channel_post_updates=True
     ))
-    dispatcher.add_handler(CommandHandler('setlog', handle_setlog))
-    dispatcher.add_handler(CommandHandler('unsetlog', handle_unsetlog))
     dispatcher.add_handler(MessageHandler(
         Filters.all, partial(handle_any_message, mode), edited_updates=True
     ))
