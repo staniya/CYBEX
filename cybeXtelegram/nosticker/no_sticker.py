@@ -1,5 +1,6 @@
 import os
 import re
+from collections import Counter
 from pprint import pprint
 from pathlib import Path
 from traceback import format_exc
@@ -10,7 +11,6 @@ import yaml
 import html
 import sys
 import logging
-from collections import Counter
 from argparse import ArgumentParser
 import telebot
 from datetime import datetime, timedelta
@@ -52,7 +52,6 @@ You can control format of logs with /setlogformat <format> command sent to the c
 simple - display basic info about message + the
 text of message (or caption text of photo/video)
 json - display full message data in JSON format
-forward - simply forward message to the channel (just message, no data about chat or author).
 
 *Questions, Feedback*
 Support chat - [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
@@ -153,24 +152,43 @@ def create_bot(api_token, db):
             logging.error("User has been in the chat longer than the set safe hours")
             return _run_main(msg, False, None)
         else:
-            # try:
-            #     bot.delete_message(msg.chat.id, msg.message_id)
-            #     db.event.save({
-            #         'type': 'delete_document',
-            #         'chat_id': msg.chat.id,
-            #         'chat_username': msg.chat.username,
-            #         'user_id': msg.from_user.id,
-            #         'username': msg.from_user.username,
-            #         'date': datetime.utcnow(),
-            #         'document': {
-            #             'file_id': msg.document.file_id,
-            #             'file_name': msg.document.file_name,
-            #             'mime_type': msg.document.mime_type,
-            #             'file_size': msg.document.file_size,
-            #             'thumb': msg.document.thumb.__dict__ if msg.document.thumb else None,
-            #         },
-            #     })
-            return _run_main(msg, True, 'document')
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                db.event.save({
+                    'type': 'delete_document',
+                    'chat_id': msg.chat.id,
+                    'chat_username': msg.chat.username,
+                    'user_id': msg.from_user.id,
+                    'username': msg.from_user.username,
+                    'date': datetime.utcnow(),
+                    # 'document': {
+                    #     'file_id': msg.document.file_id,
+                    #     'file_name': msg.document.file_name,
+                    #     'mime_type': msg.document.mime_type,
+                    #     'file_size': msg.document.file_size,
+                    #     'thumb': msg.document.thumb.__dict__ if msg.document.thumb else None,
+                    # },
+                })
+                return _run_main(msg, True, 'document')
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be deleted" in str(ex)
+                        or 'MESSAGE_ID_INVALID' in str(ex)
+                        # or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     @bot.message_handler(content_types=['photo'])
     def handle_photo(msg):
@@ -190,21 +208,40 @@ def create_bot(api_token, db):
             logging.error("User has been in the chat longer than the set safe hours")
             return _run_main(msg, False, None)
         else:
-            # try:
-            #     bot.delete_message(msg.chat.id, msg.message_id)
-            #     db.event.save({
-            #         'type': 'delete_photo',
-            #         'chat_id': msg.chat.id,
-            #         'chat_username': msg.chat.username,
-            #         'user_id': msg.from_user.id,
-            #         'username': msg.from_user.username,
-            #         'date': datetime.utcnow(),
-            #         'photo': {
-            #             'photo': 'photo_deleted',
-            #             # TODO how to get the file_id for this one?
-            #         },
-            #     })
-            return _run_main(msg, True, 'photo')
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                db.event.save({
+                    'type': 'delete_photo',
+                    'chat_id': msg.chat.id,
+                    'chat_username': msg.chat.username,
+                    'user_id': msg.from_user.id,
+                    'username': msg.from_user.username,
+                    'date': datetime.utcnow(),
+                    # 'photo': {
+                    #     'photo': 'photo_deleted',
+                    #     # TODO how to get the file_id for this one?
+                    # },
+                })
+                return _run_main(msg, True, 'photo')
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be deleted" in str(ex)
+                        or 'MESSAGE_ID_INVALID' in str(ex)
+                        # or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     @bot.message_handler(content_types=['audio'])
     def handle_audio(msg):
@@ -224,24 +261,43 @@ def create_bot(api_token, db):
             logging.error("User has been in the chat longer than the set safe hours")
             return _run_main(msg, False, None)
         else:
-            # try:
-            #     bot.delete_message(msg.chat.id, msg.message_id)
-            #     db.event.save({
-            #         'type': 'delete_audio',
-            #         'chat_id': msg.chat.id,
-            #         'chat_username': msg.chat.username,
-            #         'user_id': msg.from_user.id,
-            #         'username': msg.from_user.username,
-            #         'date': datetime.utcnow(),
-            #         'audio': {
-            #             'file_id': msg.audio.file_id,
-            #             'title': msg.audio.title,
-            #             'file_size': msg.audio.file_size,
-            #             'performer': msg.audio.performer,
-            #             'mime_type': msg.audio.mime_type,
-            #         },
-            #     })
-            return _run_main(msg, True, 'audio')
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                db.event.save({
+                    'type': 'delete_audio',
+                    'chat_id': msg.chat.id,
+                    'chat_username': msg.chat.username,
+                    'user_id': msg.from_user.id,
+                    'username': msg.from_user.username,
+                    'date': datetime.utcnow(),
+                    # 'audio': {
+                    #     'file_id': msg.audio.file_id,
+                    #     'title': msg.audio.title,
+                    #     'file_size': msg.audio.file_size,
+                    #     'performer': msg.audio.performer,
+                    #     'mime_type': msg.audio.mime_type,
+                    # },
+                })
+                return _run_main(msg, True, 'audio')
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be deleted" in str(ex)
+                        or 'MESSAGE_ID_INVALID' in str(ex)
+                        # or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     @bot.message_handler(content_types=['voice'])
     def handle_voice(msg):
@@ -261,22 +317,41 @@ def create_bot(api_token, db):
             logging.error("User has been in the chat longer than the set safe hours")
             return _run_main(msg, False, None)
         else:
-            # try:
-            #     bot.delete_message(msg.chat.id, msg.message_id)
-            #     db.event.save({
-            #         'type': 'delete_voice',
-            #         'chat_id': msg.chat.id,
-            #         'chat_username': msg.chat.username,
-            #         'user_id': msg.from_user.id,
-            #         'username': msg.from_user.username,
-            #         'date': datetime.utcnow(),
-            #         'voice': {
-            #             'file_id': msg.voice.file_id,
-            #             'file_size': msg.voice.file_size,
-            #             'mime_type': msg.voice.mime_type,
-            #         },
-            #     })
-            return _run_main(msg, True, 'voice')
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                db.event.save({
+                    'type': 'delete_voice',
+                    'chat_id': msg.chat.id,
+                    'chat_username': msg.chat.username,
+                    'user_id': msg.from_user.id,
+                    'username': msg.from_user.username,
+                    'date': datetime.utcnow(),
+                    # 'voice': {
+                    #     'file_id': msg.voice.file_id,
+                    #     'file_size': msg.voice.file_size,
+                    #     'mime_type': msg.voice.mime_type,
+                    # },
+                })
+                return _run_main(msg, True, 'voice')
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be deleted" in str(ex)
+                        or 'MESSAGE_ID_INVALID' in str(ex)
+                        # or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     @bot.message_handler(content_types=['video'])
     def handle_video(msg):
@@ -296,22 +371,41 @@ def create_bot(api_token, db):
             logging.error("User has been in the chat longer than the set safe hours")
             return _run_main(msg, False, None)
         else:
-            # try:
-            #     bot.delete_message(msg.chat.id, msg.message_id)
-            #     db.event.save({
-            #         'type': 'delete_video',
-            #         'chat_id': msg.chat.id,
-            #         'chat_username': msg.chat.username,
-            #         'user_id': msg.from_user.id,
-            #         'username': msg.from_user.username,
-            #         'date': datetime.utcnow(),
-            #         'video': {
-            #             'file_id': msg.video.file_id,
-            #             'file_size': msg.video.file_size,
-            #             'mime_type': msg.video.mime_type,
-            #         },
-            #     })
-            return _run_main(msg, True, 'video')
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                db.event.save({
+                    'type': 'delete_video',
+                    'chat_id': msg.chat.id,
+                    'chat_username': msg.chat.username,
+                    'user_id': msg.from_user.id,
+                    'username': msg.from_user.username,
+                    'date': datetime.utcnow(),
+                    # 'video': {
+                    #     'file_id': msg.video.file_id,
+                    #     'file_size': msg.video.file_size,
+                    #     'mime_type': msg.video.mime_type,
+                    # },
+                })
+                return _run_main(msg, True, 'video')
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be deleted" in str(ex)
+                        or 'MESSAGE_ID_INVALID' in str(ex)
+                        # or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     @bot.message_handler(content_types=['location'])
     def handle_location(msg):
@@ -331,21 +425,40 @@ def create_bot(api_token, db):
             logging.error("User has been in the chat longer than the set safe hours")
             return _run_main(msg, False, None)
         else:
-            # try:
-            #     bot.delete_message(msg.chat.id, msg.message_id)
-            #     db.event.save({
-            #         'type': 'delete_location',
-            #         'chat_id': msg.chat.id,
-            #         'chat_username': msg.chat.username,
-            #         'user_id': msg.from_user.id,
-            #         'username': msg.from_user.username,
-            #         'date': datetime.utcnow(),
-            #         'location': {
-            #             'latitude': msg.location.latitude,
-            #             'longitude': msg.location.longitude,
-            #         },
-            #     })
-            return _run_main(msg, True, 'location')
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                db.event.save({
+                    'type': 'delete_location',
+                    'chat_id': msg.chat.id,
+                    'chat_username': msg.chat.username,
+                    'user_id': msg.from_user.id,
+                    'username': msg.from_user.username,
+                    'date': datetime.utcnow(),
+                    # 'location': {
+                    #     'latitude': msg.location.latitude,
+                    #     'longitude': msg.location.longitude,
+                    # },
+                })
+                return _run_main(msg, True, 'location')
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be deleted" in str(ex)
+                        or 'MESSAGE_ID_INVALID' in str(ex)
+                        # or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     @bot.message_handler(content_types=['contact'])
     def handle_contact(msg):
@@ -365,21 +478,40 @@ def create_bot(api_token, db):
             logging.error("User has been in the chat longer than the set safe hours")
             return _run_main(msg, False, None)
         else:
-            # try:
-            #     bot.delete_message(msg.chat.id, msg.message_id)
-            #     db.event.save({
-            #         'type': 'delete_contact',
-            #         'chat_id': msg.chat.id,
-            #         'chat_username': msg.chat.username,
-            #         'user_id': msg.from_user.id,
-            #         'username': msg.from_user.username,
-            #         'date': datetime.utcnow(),
-            #         'contact': {
-            #             'phone_number': msg.contact.phone_number,
-            #             'first_name': msg.contact.first_name,
-            #         },
-            #     })
-            return _run_main(msg, True, 'contact')
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                db.event.save({
+                    'type': 'delete_contact',
+                    'chat_id': msg.chat.id,
+                    'chat_username': msg.chat.username,
+                    'user_id': msg.from_user.id,
+                    'username': msg.from_user.username,
+                    'date': datetime.utcnow(),
+                    # 'contact': {
+                    #     'phone_number': msg.contact.phone_number,
+                    #     'first_name': msg.contact.first_name,
+                    # },
+                })
+                return _run_main(msg, True, 'contact')
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be deleted" in str(ex)
+                        or 'MESSAGE_ID_INVALID' in str(ex)
+                        # or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     @bot.message_handler(content_types=['video_note'])
     def handle_video_note(msg):
@@ -399,21 +531,40 @@ def create_bot(api_token, db):
             logging.error("User has been in the chat longer than the set safe hours")
             return _run_main(msg, False, None)
         else:
-            # try:
-            #     bot.delete_message(msg.chat.id, msg.message_id)
-            #     db.event.save({
-            #         'type': 'delete_video_note',
-            #         'chat_id': msg.chat.id,
-            #         'chat_username': msg.chat.username,
-            #         'user_id': msg.from_user.id,
-            #         'username': msg.from_user.username,
-            #         'date': datetime.utcnow(),
-            #         'video_note': {
-            #             'videonote': 'video note deleted',
-            #             # TODO get file_id for this one
-            #         },
-            #     })
-            return _run_main(msg, True, 'video_note')
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                db.event.save({
+                    'type': 'delete_video_note',
+                    'chat_id': msg.chat.id,
+                    'chat_username': msg.chat.username,
+                    'user_id': msg.from_user.id,
+                    'username': msg.from_user.username,
+                    'date': datetime.utcnow(),
+                    # 'video_note': {
+                    #     'videonote': 'video note deleted',
+                    #     # TODO get file_id for this one
+                    # },
+                })
+                return _run_main(msg, True, 'video_note')
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be deleted" in str(ex)
+                        or 'MESSAGE_ID_INVALID' in str(ex)
+                        # or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     @bot.message_handler(commands=['start', 'help'])
     def handle_start_help(msg):
@@ -511,21 +662,20 @@ def create_bot(api_token, db):
                 )
             return user_type
 
-    @bot.message_handler(func=lambda msg: True)
     def get_delete_link(msg):
         if (
                 msg.from_user.username == 'Shinno'
                 and (msg.text == 'del' or msg.caption == 'del')
         ):
-            return _run_main(msg, True, 'debug delete')
+            return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return _run_main(msg, False, None)
+            return False, None
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
-            return _run_main(msg, False, None)
+            return False, None
         locations = [
             ('text', msg.entities or []),
             ('caption', msg.caption_entities or []),
@@ -534,17 +684,33 @@ def create_bot(api_token, db):
             for ent in entities:
                 # TODO maybe need to change all of this to True later
                 if ent.type in ('url', 'text_link'):
-                    return _run_main(msg, True, 'external link')
+                    db.event.save({
+                        'type': 'delete_link',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                    })
+                    return True, 'external link'
                 if ent.type in ('email',):
-                    return _run_main(msg, True, 'email')
+                    db.event.save({
+                        'type': 'delete_link',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                    })
+                    return True, 'email'
                 if ent.type == 'mention':
                     text = msg.text if scope == 'text' else msg.caption
                     username = text[ent.offset:ent.offset + ent.length].lstrip('@')
                     user_type = process_user_type(username)
                     if user_type in ('group', 'channel'):
-                        return _run_main(msg, False, '@-link to group/channel')
+                        return False, '@-link to group/channel'
             if msg.forward_from or msg.forward_from_chat:
-                return _run_main(msg, False, 'forwarded')
+                return False, 'forwarded'
             return False, None
 
     @bot.message_handler(commands=['setlogformat'])
@@ -558,7 +724,7 @@ def create_bot(api_token, db):
             else:
                 bot.send_message(msg.chat.id, 'This command has to be called from a channel')
             return
-        valid_formats = ('json', 'forward', 'simple')
+        valid_formats = ('json', 'simple')
         formats = msg.text.split(' ')[-1].split(',')
         if any(x not in valid_formats for x in formats):
             bot.send_message(msg.chat.id, 'Invalid arguments. Valid choices: {}'.format(
@@ -698,29 +864,52 @@ def create_bot(api_token, db):
     @bot.message_handler(commands=['stat'])
     def handle_stat(msg):
         if msg.chat.type != 'private':
+            if msg.text.strip() in (
+                    '/stat', '/stat@cybexantispamrealbot', '/stat@cybexantispamrealtestbot',
+            ):
+                bot.delete_message(msg.chat.id, msg.message_id)
             return
-        cnt = {
-            'delete_msg': [],
-            'chat': [],
-        }
+        days = []
+        top_today = Counter()
+        top_ystd = Counter()
+        top_week = Counter()
         today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         for x in range(7):
             day = today - timedelta(days=x)
-            stat = db.day_stat.find_one({'date': day})
-            if stat:
-                cnt['delete_msg'].insert(0, stat['delete_msg'])
-                cnt['chat'].insert(0, stat['chat'])
-            else:
-                cnt['delete_msg'].insert(0, 'NA')
-                cnt['chat'].insert(0, 'NA')
-
-        ret = '*Recent 7 days stat*\n'
-        ret += '\n'
-        ret += 'Deleted messages:\n'
-        ret += ('    %s' % '|'.join(map(str, cnt['delete_msg']))) + '\n'
-        ret += 'Affected chats:\n'
-        ret += ('    %s' % '|'.join(map(str, cnt['chat']))) + '\n'
-        bot.reply_to(msg.chat.id, ret, parse_mode='Markdown')
+            types = ['delete_sticker', 'delete_document', 'delete_photo', 'delete_audio',
+                     'delete_voice', 'delete_video', 'delete_location', 'delete_contact',
+                     'delete_video_note', 'delete_link']
+            # TODO check if this is correct
+            for t_type in types:
+                query = {'$and': [
+                    {'type': t_type},
+                    {'date': {'$gte': day}},
+                    {'date': {'$lt': day + timedelta(days=1)}},
+                ]}
+                num = 0
+                for event in db.event.find(query):
+                    num += 1
+                    key = (
+                        '@%s' % event['chat_username'] if event['chat_username']
+                        else '#%d' % event['chat_id']
+                    )
+                    if day == today:
+                        top_today[key] += 1
+                    if day == (today - timedelta(days=1)):
+                        top_ystd[key] += 1
+                    top_week[key] += 1
+                days.insert(0, num)
+        ret = 'Recent 7 days: %s' % ' | '.join([str(x) for x in days])
+        ret += '\n\nTop today (%d):\n%s' % (
+            len(top_today),
+            '\n'.join('  %s (%d)' % x for x in top_today.most_common()
+                      ))
+        ret += '\n\nTop yesterday (%d):\n%s' % (
+            len(top_ystd),
+            '\n'.join('  %s (%d)' % x for x in top_ystd.most_common()
+                      ))
+        ret += '\n\nTop 10 week:\n%s' % '\n'.join('  %s (%d)' % x for x in top_week.most_common(10))
+        bot.reply_to(msg, ret)
 
     def format_user_display_name(user):
         if user.first_name and user.last_name:
@@ -735,7 +924,7 @@ def create_bot(api_token, db):
         else:
             return '#{}'.format(user.id)
 
-    def log_event_to_channel(bot, msg, reason, chid, formats):
+    def log_event_to_channel(msg, reason, chid, formats):
         if msg.chat.username:
             from_chatname = '<a href="https://t.me/{}">@{}</a>'.format(
                 msg.chat.username, msg.chat.username
@@ -747,28 +936,28 @@ def create_bot(api_token, db):
             'Chat: {}\nUser: <a href=tg://user?id={}">{}</a>'.format(
                 from_chatname, msg.from_user.id, user_display_name)
         )
-        if 'forward' in formats:
-            try:
-                bot.forward_message(
-                    chid, msg.chat.id, msg.message_id
-                )
-            except Exception or AttributeError as ex:
-                db.fail.save({
-                    'date': datetime.utcnow(),
-                    'reason': str(ex),
-                    'traceback': format_exc(),
-                    'chat_id': msg.chat.id,
-                    'msg_id': msg.message_id,
-                })
-                if (
-                        'MESSAGE_ID_INVALID' in str(ex) or
-                        'message to forward not found' in str(ex)
-                ):
-                    logging.error(
-                        'Failed to forward spam message: {}'.format(ex)
-                    )
-                else:
-                    raise
+        # if 'forward' in formats:
+        #     try:
+        #         msg.forward_message(
+        #             chid, msg.chat.id, msg.message_id
+        #         )
+        #     except Exception or AttributeError as ex:
+        #         db.fail.save({
+        #             'date': datetime.utcnow(),
+        #             'reason': str(ex),
+        #             'traceback': format_exc(),
+        #             'chat_id': msg.chat.id,
+        #             'msg_id': msg.message_id,
+        #         })
+        #         if (
+        #                 'MESSAGE_ID_INVALID' in str(ex) or
+        #                 'message to forward not found' in str(ex)
+        #         ):
+        #             logging.error(
+        #                 'Failed to forward spam message: {}'.format(ex)
+        #             )
+        #         else:
+        #             raise
 
         if 'json' in formats:
             # TODO to_dict() and jsondate may cause an error
@@ -795,15 +984,6 @@ def create_bot(api_token, db):
                 )
                 bot.reply_to(chid, content, parse_mode='HTML')
 
-    def save_message_event(db, event_type, msg, **kwargs):
-        event = msg.to_dict()
-        event.update({
-            'date': datetime.utcnow(),
-            'type': event_type,
-        })
-        event.update(**kwargs)
-        db.event.save(event)
-
     def delete_message_safe(msg):
         try:
             bot.delete_message(msg.chat.id, msg.message_id)
@@ -811,7 +991,8 @@ def create_bot(api_token, db):
             if (
                 'message tp delete not found' in str(ex)
                 # or "message can\'t be deleted" in str(ex)
-                or "be deleted" in str(ex) # fix
+                or "be deleted" in str(ex)
+                # fix
                 or "MESSAGE_ID_INVALID" in str(ex)
             ):
                 pass
@@ -827,7 +1008,6 @@ def create_bot(api_token, db):
             return
         if bool:
             try:
-                save_message_event(db, 'delete_msg', msg, reason=reason)
                 user_display_name = format_user_display_name(msg.from_user)
                 event_key = (msg.chat.id, msg.from_user.id)
                 if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
@@ -854,8 +1034,8 @@ def create_bot(api_token, db):
                         GROUP_CONFIG, chid, 'logformat', default=['simple']
                     )
                     try:
-                        log_event_to_channel(bot, msg, reason, chid, formats)
-                    except Exception as ex:
+                        log_event_to_channel(msg, reason, chid, formats)
+                    except Exception or AttributeError:
                         logging.exception(
                             'Failed to send notification to channel [{}]'.format(chid)
                         )
@@ -875,12 +1055,40 @@ def create_bot(api_token, db):
                             # or "message can\'t be deleted" in str(ex)
                             or "be deleted" in str(ex)
                             or 'MESSAGE_ID_INVALID' in str(ex)
-                            or 'message to forward not found' in str(ex)
+                            # or 'message to forward not found' in str(ex)
                     ):
                         logging.error('Failed to process spam message: {}'.format(
                             ex))
                     else:
                         raise
+
+    @bot.message_handler(func=lambda msg: True)
+    def handle_all_messages(msg):
+        if msg.chat.type in ('channel', 'private'):
+            return
+        to_delete, reason = get_delete_link(msg)
+        if to_delete:
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+            except Exception or AttributeError as ex:
+                db.fail.save({
+                    'date': datetime.utcnow(),
+                    'reason': str(ex),
+                    'traceback': format_exc(),
+                    'chat_id': msg.chat.id,
+                    'msg_id': msg.message_id,
+                })
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be delete" in str(ex)
+                        or "MESSAGE_ID_INVALID" in str(ex)
+                        or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
 
     return bot
 
