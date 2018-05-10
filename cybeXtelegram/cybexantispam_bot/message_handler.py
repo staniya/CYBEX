@@ -142,3 +142,52 @@
 #                     from_info, reason, text)
 #             )
 #             bot.send_message(chid, content, parse_mode=ParseMode.HTML)
+
+# def handle_stat(msg):
+# if msg.chat.type != 'private':
+#     if msg.text.strip() in (
+#             '/stat', '/stat@cybexantispamrealbot', '/stat@cybexantispamrealtestbot',
+#     ):
+#         bot.delete_message(msg.chat.id, msg.message_id)
+#     return
+# days = []
+# top_today = Counter()
+# top_ystd = Counter()
+# top_week = Counter()
+# today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+# for x in range(7):
+#     day = today - timedelta(days=x)
+#     types = ['delete_sticker', 'delete_document', 'delete_photo', 'delete_audio',
+#              'delete_voice', 'delete_video', 'delete_location', 'delete_contact',
+#              'delete_video_note', 'delete_link']
+#     # TODO fix the format for this
+#     for t_type in types:
+#         query = {'$and': [
+#             {'type': t_type},
+#             {'date': {'$gte': day}},
+#             {'date': {'$lt': day + timedelta(days=1)}},
+#         ]}
+#         num = 0
+#         for event in db.event.find(query):
+#             num += 1
+#             key = (
+#                 '@%s' % event['chat_username'] if event['chat_username']
+#                 else '#%d' % event['chat_id']
+#             )
+#             if day == today:
+#                 top_today[key] += 1
+#             if day == (today - timedelta(days=1)):
+#                 top_ystd[key] += 1
+#             top_week[key] += 1
+#         days.insert(0, num)
+# ret = 'Recent 7 days: %s' % ' | '.join([str(x) for x in days])
+# ret += '\n\nTop today (%d):\n%s' % (
+#     len(top_today),
+#     '\n'.join('  %s (%d)' % x for x in top_today.most_common()
+#               ))
+# ret += '\n\nTop yesterday (%d):\n%s' % (
+#     len(top_ystd),
+#     '\n'.join('  %s (%d)' % x for x in top_ystd.most_common()
+#               ))
+# ret += '\n\nTop 10 week:\n%s' % '\n'.join('  %s (%d)' % x for x in top_week.most_common(10))
+# bot.reply_to(msg, ret)
