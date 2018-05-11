@@ -83,12 +83,18 @@ else:
 BOTNAME_TEST = config['BOT_USERNAME1']
 TELEGRAM_BOT_TOKEN_TEST = config['BOT_TOKEN1']
 
-SUPERUSER_IDS = {547143881}
+SUPERUSER_IDS = {
+    547143881,
+    588855253,
+    521939957,
+    566494759,
+    483171166
+}
 # List of keys allowed to use in set_setting/get_setting
 GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safehours')
 # Channel of global channel to translate ALL spam
 GLOBAL_LOG_CHANNEL_ID = {
-    'production': -1001313978621,
+    'production': -1001313978621
 }
 # Default time to reject link and forwarded posts from new user
 DEFAULT_SAFE_HOURS = 720
@@ -153,23 +159,28 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                bot.delete_message(msg.chat.id, msg.message_id)
-                db.event.save({
-                    'type': 'delete_document',
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                    # 'document': {
-                    #     'file_id': msg.document.file_id,
-                    #     'file_name': msg.document.file_name,
-                    #     'mime_type': msg.document.mime_type,
-                    #     'file_size': msg.document.file_size,
-                    #     'thumb': msg.document.thumb.__dict__ if msg.document.thumb else None,
-                    # },
-                })
-                return _run_main(msg, True, 'document')
+                admins = bot.get_chat_administrators(msg.chat.id)
+                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+                if msg.from_user.id not in admin_ids:
+                    bot.delete_message(msg.chat.id, msg.message_id)
+                    db.event.save({
+                        'type': 'delete_document',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                        # 'document': {
+                        #     'file_id': msg.document.file_id,
+                        #     'file_name': msg.document.file_name,
+                        #     'mime_type': msg.document.mime_type,
+                        #     'file_size': msg.document.file_size,
+                        #     'thumb': msg.document.thumb.__dict__ if msg.document.thumb else None,
+                        # },
+                    })
+                    return _run_main(msg, True, 'document')
+                else:
+                    return _run_main(msg, False, 'admin')
             except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
@@ -209,20 +220,25 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                bot.delete_message(msg.chat.id, msg.message_id)
-                db.event.save({
-                    'type': 'delete_photo',
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                    # 'photo': {
-                    #     'photo': 'photo_deleted',
-                    #     # TODO how to get the file_id for this one?
-                    # },
-                })
-                return _run_main(msg, True, 'photo')
+                admins = bot.get_chat_administrators(msg.chat.id)
+                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+                if msg.from_user.id not in admin_ids:
+                    bot.delete_message(msg.chat.id, msg.message_id)
+                    db.event.save({
+                        'type': 'delete_photo',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                        # 'photo': {
+                        #     'photo': 'photo_deleted',
+                        #     # TODO how to get the file_id for this one?
+                        # },
+                    })
+                    return _run_main(msg, True, 'photo')
+                else:
+                    return _run_main(msg, False, 'admin')
             except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
@@ -262,23 +278,28 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                bot.delete_message(msg.chat.id, msg.message_id)
-                db.event.save({
-                    'type': 'delete_audio',
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                    # 'audio': {
-                    #     'file_id': msg.audio.file_id,
-                    #     'title': msg.audio.title,
-                    #     'file_size': msg.audio.file_size,
-                    #     'performer': msg.audio.performer,
-                    #     'mime_type': msg.audio.mime_type,
-                    # },
-                })
-                return _run_main(msg, True, 'audio')
+                admins = bot.get_chat_administrators(msg.chat.id)
+                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+                if msg.from_user.id not in admin_ids:
+                    bot.delete_message(msg.chat.id, msg.message_id)
+                    db.event.save({
+                        'type': 'delete_audio',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                        # 'audio': {
+                        #     'file_id': msg.audio.file_id,
+                        #     'title': msg.audio.title,
+                        #     'file_size': msg.audio.file_size,
+                        #     'performer': msg.audio.performer,
+                        #     'mime_type': msg.audio.mime_type,
+                        # },
+                    })
+                    return _run_main(msg, True, 'audio')
+                else:
+                    return _run_main(msg, False, 'admin')
             except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
@@ -318,21 +339,26 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                bot.delete_message(msg.chat.id, msg.message_id)
-                db.event.save({
-                    'type': 'delete_voice',
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                    # 'voice': {
-                    #     'file_id': msg.voice.file_id,
-                    #     'file_size': msg.voice.file_size,
-                    #     'mime_type': msg.voice.mime_type,
-                    # },
-                })
-                return _run_main(msg, True, 'voice')
+                admins = bot.get_chat_administrators(msg.chat.id)
+                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+                if msg.from_user.id not in admin_ids:
+                    bot.delete_message(msg.chat.id, msg.message_id)
+                    db.event.save({
+                        'type': 'delete_voice',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                        # 'voice': {
+                        #     'file_id': msg.voice.file_id,
+                        #     'file_size': msg.voice.file_size,
+                        #     'mime_type': msg.voice.mime_type,
+                        # },
+                    })
+                    return _run_main(msg, True, 'voice')
+                else:
+                    return _run_main(msg, False, 'admin')
             except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
@@ -372,21 +398,26 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                bot.delete_message(msg.chat.id, msg.message_id)
-                db.event.save({
-                    'type': 'delete_video',
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                    # 'video': {
-                    #     'file_id': msg.video.file_id,
-                    #     'file_size': msg.video.file_size,
-                    #     'mime_type': msg.video.mime_type,
-                    # },
-                })
-                return _run_main(msg, True, 'video')
+                admins = bot.get_chat_administrators(msg.chat.id)
+                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+                if msg.from_user.id not in admin_ids:
+                    bot.delete_message(msg.chat.id, msg.message_id)
+                    db.event.save({
+                        'type': 'delete_video',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                        # 'video': {
+                        #     'file_id': msg.video.file_id,
+                        #     'file_size': msg.video.file_size,
+                        #     'mime_type': msg.video.mime_type,
+                        # },
+                    })
+                    return _run_main(msg, True, 'video')
+                else:
+                    return _run_main(msg, False, 'admin')
             except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
@@ -426,20 +457,25 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                bot.delete_message(msg.chat.id, msg.message_id)
-                db.event.save({
-                    'type': 'delete_location',
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                    # 'location': {
-                    #     'latitude': msg.location.latitude,
-                    #     'longitude': msg.location.longitude,
-                    # },
-                })
-                return _run_main(msg, True, 'location')
+                admins = bot.get_chat_administrators(msg.chat.id)
+                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+                if msg.from_user.id not in admin_ids:
+                    bot.delete_message(msg.chat.id, msg.message_id)
+                    db.event.save({
+                        'type': 'delete_location',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                        # 'location': {
+                        #     'latitude': msg.location.latitude,
+                        #     'longitude': msg.location.longitude,
+                        # },
+                    })
+                    return _run_main(msg, True, 'location')
+                else:
+                    return _run_main(msg, False, 'admin')
             except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
@@ -479,20 +515,25 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                bot.delete_message(msg.chat.id, msg.message_id)
-                db.event.save({
-                    'type': 'delete_contact',
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                    # 'contact': {
-                    #     'phone_number': msg.contact.phone_number,
-                    #     'first_name': msg.contact.first_name,
-                    # },
-                })
-                return _run_main(msg, True, 'contact')
+                admins = bot.get_chat_administrators(msg.chat.id)
+                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+                if msg.from_user.id not in admin_ids:
+                    bot.delete_message(msg.chat.id, msg.message_id)
+                    db.event.save({
+                        'type': 'delete_contact',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                        # 'contact': {
+                        #     'phone_number': msg.contact.phone_number,
+                        #     'first_name': msg.contact.first_name,
+                        # },
+                    })
+                    return _run_main(msg, True, 'contact')
+                else:
+                    return _run_main(msg, False, 'admin')
             except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
@@ -532,20 +573,25 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                bot.delete_message(msg.chat.id, msg.message_id)
-                db.event.save({
-                    'type': 'delete_video_note',
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                    # 'video_note': {
-                    #     'videonote': 'video note deleted',
-                    #     # TODO get file_id for this one
-                    # },
-                })
-                return _run_main(msg, True, 'video_note')
+                admins = bot.get_chat_administrators(msg.chat.id)
+                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+                if msg.from_user.id not in admin_ids:
+                    bot.delete_message(msg.chat.id, msg.message_id)
+                    db.event.save({
+                        'type': 'delete_video_note',
+                        'chat_id': msg.chat.id,
+                        'chat_username': msg.chat.username,
+                        'user_id': msg.from_user.id,
+                        'username': msg.from_user.username,
+                        'date': datetime.utcnow(),
+                        # 'video_note': {
+                        #     'videonote': 'video note deleted',
+                        #     # TODO get file_id for this one
+                        # },
+                    })
+                    return _run_main(msg, True, 'video_note')
+                else:
+                    return _run_main(msg, False, 'admin')
             except Exception or AttributeError as ex:
                 db.fail.save({
                     'date': datetime.utcnow(),
@@ -717,7 +763,8 @@ def create_bot(api_token, db):
     # TODO you may have to make this a regex handler
     def handle_setlogformat(msg):
         if msg.chat.type != 'channel':
-            admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
+            admins = bot.get_chat_administrators(msg.chat.id)
+            admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
             if msg.from_user.id not in admin_ids:
                 # Silently ignore /setlogformat command from non-admin in non-channel
                 delete_message_safe(msg)
@@ -735,7 +782,8 @@ def create_bot(api_token, db):
 
     @bot.message_handler(commands=['setlog'])
     def handle_setlog(msg):
-        admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
+        admins = bot.get_chat_administrators(msg.chat.id)
+        admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
         if msg.chat.type not in ('group', 'supergroup'):
             bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
             return
@@ -763,7 +811,8 @@ def create_bot(api_token, db):
 
     @bot.message_handler(commands=['unsetlog'])
     def handle_unsetlog(msg):
-        admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
+        admins = bot.get_chat_administrators(msg.chat.id)
+        admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
         if msg.chat.type not in ('group', 'supergroup'):
             if msg.from_user.id not in admin_ids:
                 # Silently ignore /setlog command from non-admin
@@ -1012,15 +1061,15 @@ def create_bot(api_token, db):
                 event_key = (msg.chat.id, msg.from_user.id)
                 if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
                     # Notify about spam from same user one time per hour
-                    if (
-                            event_key not in DELETE_EVENTS
-                            or DELETE_EVENTS[event_key] <
-                            (datetime.utcnow() - timedelta(hours=1))
-                    ):
-                        ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
-                            html.escape(user_display_name), reason
-                        )
-                        bot.reply_to(msg.chat.id, ret, parse_mode='HTML')
+                     if (
+                             event_key not in DELETE_EVENTS
+                             or DELETE_EVENTS[event_key] <
+                             (datetime.utcnow() - timedelta(hours=1))
+                     ):
+                         ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
+                             html.escape(user_display_name), reason
+                         )
+                         bot.reply_to(msg.chat.id, ret, parse_mode='HTML')
                 DELETE_EVENTS[event_key] = datetime.utcnow()
 
                 ids = {GLOBAL_LOG_CHANNEL_ID['production']}
@@ -1039,28 +1088,9 @@ def create_bot(api_token, db):
                         logging.exception(
                             'Failed to send notification to channel [{}]'.format(chid)
                         )
-            finally:
-                try:
-                    bot.delete_message(msg.chat.id, msg.message_id)
-                except Exception or AttributeError as ex:
-                    db.fail.save({
-                        'date': datetime.utcnow(),
-                        'reason': str(ex),
-                        'traceback': format_exc(),
-                        'chat_id': msg.chat.id,
-                        'msg_id': msg.message_id,
-                    })
-                    if (
-                            'message to delete not found' in str(ex)
-                            # or "message can\'t be deleted" in str(ex)
-                            or "be deleted" in str(ex)
-                            or 'MESSAGE_ID_INVALID' in str(ex)
-                            # or 'message to forward not found' in str(ex)
-                    ):
-                        logging.error('Failed to process spam message: {}'.format(
-                            ex))
-                    else:
-                        raise
+            except Exception or AttributeError as ex:
+                logging.error('Failed to process spam message: {}'.format(
+                    ex))
 
     @bot.message_handler(func=lambda msg: True)
     def handle_all_messages(msg):
