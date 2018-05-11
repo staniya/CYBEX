@@ -14,6 +14,7 @@ import logging
 from argparse import ArgumentParser
 import telebot
 from datetime import datetime, timedelta
+import time
 
 from database import connect_db
 from model import load_group_config
@@ -88,13 +89,13 @@ SUPERUSER_IDS = {
     588855253,
     521939957,
     566494759,
-    483171166
+    483171166,
 }
 # List of keys allowed to use in set_setting/get_setting
 GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safehours')
 # Channel of global channel to translate ALL spam
 GLOBAL_LOG_CHANNEL_ID = {
-    'production': -1001313978621
+    'production': -1001313978621,
 }
 # Default time to reject link and forwarded posts from new user
 DEFAULT_SAFE_HOURS = 720
@@ -159,9 +160,7 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                admins = bot.get_chat_administrators(msg.chat.id)
-                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
-                if msg.from_user.id not in admin_ids:
+                if msg.from_user.id not in SUPERUSER_IDS:
                     bot.delete_message(msg.chat.id, msg.message_id)
                     db.event.save({
                         'type': 'delete_document',
@@ -220,9 +219,7 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                admins = bot.get_chat_administrators(msg.chat.id)
-                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
-                if msg.from_user.id not in admin_ids:
+                if msg.from_user.id not in SUPERUSER_IDS:
                     bot.delete_message(msg.chat.id, msg.message_id)
                     db.event.save({
                         'type': 'delete_photo',
@@ -278,9 +275,7 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                admins = bot.get_chat_administrators(msg.chat.id)
-                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
-                if msg.from_user.id not in admin_ids:
+                if msg.from_user.id not in SUPERUSER_IDS:
                     bot.delete_message(msg.chat.id, msg.message_id)
                     db.event.save({
                         'type': 'delete_audio',
@@ -339,9 +334,7 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                admins = bot.get_chat_administrators(msg.chat.id)
-                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
-                if msg.from_user.id not in admin_ids:
+                if msg.from_user.id not in SUPERUSER_IDS:
                     bot.delete_message(msg.chat.id, msg.message_id)
                     db.event.save({
                         'type': 'delete_voice',
@@ -398,9 +391,7 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                admins = bot.get_chat_administrators(msg.chat.id)
-                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
-                if msg.from_user.id not in admin_ids:
+                if msg.from_user.id not in SUPERUSER_IDS:
                     bot.delete_message(msg.chat.id, msg.message_id)
                     db.event.save({
                         'type': 'delete_video',
@@ -457,9 +448,7 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                admins = bot.get_chat_administrators(msg.chat.id)
-                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
-                if msg.from_user.id not in admin_ids:
+                if msg.from_user.id not in SUPERUSER_IDS:
                     bot.delete_message(msg.chat.id, msg.message_id)
                     db.event.save({
                         'type': 'delete_location',
@@ -515,9 +504,7 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                admins = bot.get_chat_administrators(msg.chat.id)
-                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
-                if msg.from_user.id not in admin_ids:
+                if msg.from_user.id not in SUPERUSER_IDS:
                     bot.delete_message(msg.chat.id, msg.message_id)
                     db.event.save({
                         'type': 'delete_contact',
@@ -573,9 +560,7 @@ def create_bot(api_token, db):
             return _run_main(msg, False, None)
         else:
             try:
-                admins = bot.get_chat_administrators(msg.chat.id)
-                admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
-                if msg.from_user.id not in admin_ids:
+                if msg.from_user.id not in SUPERUSER_IDS:
                     bot.delete_message(msg.chat.id, msg.message_id)
                     db.event.save({
                         'type': 'delete_video_note',
@@ -763,8 +748,7 @@ def create_bot(api_token, db):
     # TODO you may have to make this a regex handler
     def handle_setlogformat(msg):
         if msg.chat.type != 'channel':
-            admins = bot.get_chat_administrators(msg.chat.id)
-            admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+            admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
             if msg.from_user.id not in admin_ids:
                 # Silently ignore /setlogformat command from non-admin in non-channel
                 delete_message_safe(msg)
@@ -782,8 +766,7 @@ def create_bot(api_token, db):
 
     @bot.message_handler(commands=['setlog'])
     def handle_setlog(msg):
-        admins = bot.get_chat_administrators(msg.chat.id)
-        admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+        admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
         if msg.chat.type not in ('group', 'supergroup'):
             bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
             return
@@ -811,8 +794,7 @@ def create_bot(api_token, db):
 
     @bot.message_handler(commands=['unsetlog'])
     def handle_unsetlog(msg):
-        admins = bot.get_chat_administrators(msg.chat.id)
-        admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+        admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
         if msg.chat.type not in ('group', 'supergroup'):
             if msg.from_user.id not in admin_ids:
                 # Silently ignore /setlog command from non-admin
@@ -939,8 +921,8 @@ def create_bot(api_token, db):
                 for event in db.event.find(query):
                     num += 1
                     key = (
-                        '@%s' % event['chat_username'] if event['chat_username']
-                        else '#%d' % event['chat_id']
+                        '@{}'.format(event['chat_username']) if event['chat_username']
+                        else '#{}'.format(event['chat_id'])
                     )
                     if day == today:
                         top_today[key] += 1
@@ -948,8 +930,8 @@ def create_bot(api_token, db):
                         top_ystd[key] += 1
                     top_week[key] += 1
                 days.insert(0, num)
-        ret = 'Recent 7 days: %s' % ' | '.join([str(x) for x in days])
-        ret += '\n\nTop today (%d):\n%s' % (
+        ret = 'Recent 7 days: {}'.format(' | '.join([str(x) for x in days]))
+        ret += '\n\nTop today ({}):\n{}'.format(
             len(top_today),
             '\n'.join('  %s (%d)' % x for x in top_today.most_common()
                       ))
@@ -1038,11 +1020,11 @@ def create_bot(api_token, db):
             bot.delete_message(msg.chat.id, msg.message_id)
         except Exception as ex:
             if (
-                'message tp delete not found' in str(ex)
-                # or "message can\'t be deleted" in str(ex)
-                or "be deleted" in str(ex)
-                # fix
-                or "MESSAGE_ID_INVALID" in str(ex)
+                    'message tp delete not found' in str(ex)
+                    # or "message can\'t be deleted" in str(ex)
+                    or "be deleted" in str(ex)
+                    # fix
+                    or "MESSAGE_ID_INVALID" in str(ex)
             ):
                 pass
             else:
@@ -1061,15 +1043,15 @@ def create_bot(api_token, db):
                 event_key = (msg.chat.id, msg.from_user.id)
                 if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
                     # Notify about spam from same user one time per hour
-                     if (
-                             event_key not in DELETE_EVENTS
-                             or DELETE_EVENTS[event_key] <
-                             (datetime.utcnow() - timedelta(hours=1))
-                     ):
-                         ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
-                             html.escape(user_display_name), reason
-                         )
-                         bot.reply_to(msg.chat.id, ret, parse_mode='HTML')
+                    if (
+                            event_key not in DELETE_EVENTS
+                            or DELETE_EVENTS[event_key] <
+                            (datetime.utcnow() - timedelta(hours=1))
+                    ):
+                        ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
+                            html.escape(user_display_name), reason
+                        )
+                        bot.reply_to(msg.chat.id, ret, parse_mode='HTML')
                 DELETE_EVENTS[event_key] = datetime.utcnow()
 
                 ids = {GLOBAL_LOG_CHANNEL_ID['production']}
@@ -1135,7 +1117,12 @@ def main():
         token = TELEGRAM_BOT_TOKEN_TEST
     db = connect_db()
     bot = create_bot(token, db)
-    bot.polling()
+    while True:
+        try:
+            bot.polling(none_stop=True)
+        except Exception as e:
+            logging.error(e)
+            time.sleep(15)
 
 
 if __name__ == '__main__':
