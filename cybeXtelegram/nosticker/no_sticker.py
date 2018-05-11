@@ -75,12 +75,11 @@ else:
     pprint('config.yaml file does not exist')
     sys.exit()
 
-# # production
-# BOTNAME = config['BOT_USERNAME']
-# TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
+# production
+BOTNAME = config['BOT_USERNAME']
+TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
 
 # test
-# TODO when deploying, uncomment this
 BOTNAME_TEST = config['BOT_USERNAME1']
 TELEGRAM_BOT_TOKEN_TEST = config['BOT_TOKEN1']
 
@@ -1114,7 +1113,7 @@ def main():
         token = TELEGRAM_BOT_TOKEN_TEST
     else:
         # TODO in real production, change this
-        token = TELEGRAM_BOT_TOKEN_TEST
+        token = TELEGRAM_BOT_TOKEN
     db = connect_db()
     bot = create_bot(token, db)
     while True:
