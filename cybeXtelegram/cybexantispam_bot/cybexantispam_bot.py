@@ -32,7 +32,7 @@ HELP = """
 4. stickers
 5. documents
 6. locations
-7. audio
+7. audiogit p
 7. voice recordings
 
 *Usage*
@@ -69,35 +69,3 @@ Use github issues to report bugs - [github issues](https://github.com/staniya/CY
 # Load the config file
 # Set the Botname / Token
 '''
-
-
-def save_message_event(db, event_type, msg, **kwargs):
-    event = msg.to_dict()
-    event.update({
-        'date': datetime.utcnow(),
-        'type': event_type,
-    })
-    event.update(**kwargs)
-    db.event.save(event)
-
-
-def register_handlers(dispatcher, mode):
-    assert mode in ('production', 'test')
-    dispatcher.add_handler(RegexHandler(
-        r'^/setlogformat ', handle_setlogformat, channel_post_updates=True
-    ))
-    dispatcher.add_handler(MessageHandler(
-        Filters.all, partial(handle_any_message, mode), edited_updates=True
-    ))
-
-
-def main():
-    parser = ArgumentParser()
-    parser.add_argument('--mode', default='production')
-    opts = parser.parse_args()
-    logging.basicConfig(level=logging.DEBUG)
-    updater = init_updater_with_mode(opts.mode)
-    dispatcher = updater.dispatcher
-    register_handlers(dispatcher, opts.mode)
-    updater.bot.delete_webhook()
-    updater.start_polling()

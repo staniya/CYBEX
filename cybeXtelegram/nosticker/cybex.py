@@ -5,6 +5,8 @@ from pprint import pprint
 from pathlib import Path
 from traceback import format_exc
 import urllib
+# TODO make this compatible for python3
+from daemonize import Daemonize
 
 import jsondate
 import yaml
@@ -61,6 +63,8 @@ Use github issues to report bugs - [github issues](https://github.com/staniya/CY
 """
 
 # TODO turn application into a daemon
+pid = "/tmp/cybex.pid"
+
 '''
 # Load the config file
 # Set the Botname / Token
@@ -75,9 +79,9 @@ else:
     pprint('config.yaml file does not exist')
     sys.exit()
 
-# production
-BOTNAME = config['BOT_USERNAME']
-TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
+# # production
+# BOTNAME = config['BOT_USERNAME']
+# TELEGRAM_BOT_TOKEN = config['BOT_TOKEN']
 
 # test
 BOTNAME_TEST = config['BOT_USERNAME1']
@@ -1113,9 +1117,10 @@ def main():
         token = TELEGRAM_BOT_TOKEN_TEST
     else:
         # TODO in real production, change this
-        token = TELEGRAM_BOT_TOKEN
+        token = TELEGRAM_BOT_TOKEN_TEST
     db = connect_db()
     bot = create_bot(token, db)
+    bot.polling()
     while True:
         try:
             bot.polling(none_stop=True)
@@ -1126,3 +1131,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# daemon = Daemonize(app='cybex', pid=pid, action=main)
+# daemon.start()
+
