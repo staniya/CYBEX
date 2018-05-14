@@ -22,9 +22,7 @@ from model import load_group_config
 from util import find_username_links, find_external_links, fetch_user_type
 from database import connect_db
 
-SUPERUSER_IDS = set([
-    46284539,  # @madspectator
-])
+SUPERUSER_IDS = {46284539}
 # List of keys allowed to use in set_setting/get_setting
 GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safe_hours')
 # Channel of global channel to translate ALL spam
