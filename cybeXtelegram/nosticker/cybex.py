@@ -62,7 +62,7 @@ Author's telegram -  [@Shinno](https://t.me/Shinno1002)
 Use github issues to report bugs - [github issues](https://github.com/staniya/CYBEX/issues)
 """
 
-# TODO turn application into a daemon
+# turn application into a daemon
 pid = "/tmp/cybex.pid"
 
 '''
