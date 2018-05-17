@@ -950,7 +950,7 @@ def create_bot(api_token, db):
         ret = 'STATS \n'
         for t_type in types:
             if s_days[t_type] != 0:
-                ret += 'The number of {} deleted this week were {}'.format(
+                ret += '\nThe number of {} deleted this week were {}'.format(
                     t_type, s_days[t_type])
             else:
                 ret += 'Nothing was deleted this week'
