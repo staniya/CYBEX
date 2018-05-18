@@ -904,31 +904,17 @@ def create_bot(api_token, db):
                 bot.delete_message(msg.chat.id, msg.message_id)
             return
         days = []
-        s_days = {
-            'delete_sticker': 0,
-            'delete_document': 0,
-            'delete_photo': 0,
-            'delete_audio': 0,
-            'delete_voice': 0,
-            'delete_video': 0,
-            'delete_location': 0,
-            'delete_contact': 0,
-            'delete_video_note': 0,
-            'delete_link': 0
-        }
         top_today = Counter()
         top_ystd = Counter()
         top_week = Counter()
-        types = ['delete_sticker', 'delete_document', 'delete_photo', 'delete_audio',
-                 'delete_voice', 'delete_video', 'delete_location', 'delete_contact',
-                 'delete_video_note', 'delete_link']
         today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        ret = '\n*STATS*\n'
         for x in range(7):
             day = today - timedelta(days=x)
+            types = ['delete_sticker', 'delete_document', 'delete_photo', 'delete_audio',
+                     'delete_voice', 'delete_video', 'delete_location', 'delete_contact',
+                     'delete_video_note', 'delete_link']
             for t_type in types:
-                res = db.event.find({'$and': [{'type': t_type}, ]})._Cursor__spec['$and'][0]["type"]
-                if res in types:
-                    s_days[res] += 1
                 query = {'$and': [
                     {'type': t_type},
                     {'date': {'$gte': day}},
@@ -947,14 +933,15 @@ def create_bot(api_token, db):
                         top_ystd[key] += 1
                     top_week[key] += 1
                 days.insert(0, num)
-        ret = 'STATS \n'
-        for t_type in types:
-            if s_days[t_type] != 0:
-                ret += '\nThe number of {} deleted this week were {}'.format(
-                    t_type, s_days[t_type])
-            else:
-                ret += 'Nothing was deleted this week'
-            # ret = 'Recent 7 days: {}'.format(' | '.join([str(x) for x in days]))
+
+                # querying data for the seven day period
+                var = str(db.event.count({'$and': [{'type': t_type}, ]}))
+                res = db.event.find({'$and': [{'type': t_type}, ]})._Cursor__spec['$and'][0]["type"]
+                seven_days = '\nThe number of {} deleted in the past 7 days: {}'.format(res, var)
+                if seven_days not in ret:
+                    ret += seven_days
+                else:
+                    continue
         ret += '\n\nTop today ({}):\n{}'.format(
             len(top_today),
             '\n'.join('  %s (%d)' % x for x in top_today.most_common()
