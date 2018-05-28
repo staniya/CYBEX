@@ -10,3 +10,4 @@ pathlib
 PyYAML
 sshtunnel
 daemonize
+urllib3
