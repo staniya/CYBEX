@@ -18,8 +18,8 @@ MONGO_PASS = "password"
 def connect_db():
     # server.start()
     # client = MongoClient('127.0.0.1', server.local_bind_port)
-    db = MongoClient()['CYBEX']
-    # TODO cybex_user_management
+    db = MongoClient()['cybex_user_management']
+    # TODO CYBEX
     db.user.create_index('username', unique=True)
     db.joined_user.create_index([('chat_id', 1), ('user_id', 1)])
     db.event.create_index([('type', 1), ('date', 1)])
