@@ -57,7 +57,7 @@ json - display full message data in JSON format
 
 *Questions, Feedback*
 Support chat - [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
-Author's telegram -  [@Shinno](https://t.me/Shinno1002)
+Author's telegram -  [@Shinno](https://t.me/Shinno)
 Use github issues to report bugs - [github issues](https://github.com/staniya/CYBEX/issues)
 """
 
@@ -92,6 +92,7 @@ SUPERUSER_IDS = {
     521939957,
     566494759,
     483171166,
+    562854035,
 }
 # List of keys allowed to use in set_setting/get_setting
 GROUP_SETTING_KEYS = ('publog', 'log_channel_id', 'logformat', 'safehours')
@@ -112,31 +113,30 @@ DELETE_EVENTS = {}
 def create_bot(api_token, db):
     bot = telebot.TeleBot(api_token)
 
-    def simplification(msg, types):
+    def simplification(msg, types, reason):
         if (
-                msg.from_user.username == 'Shinno'
+                msg.from_user.username == 'Shinno1002'
                 and (msg.text == 'del' or msg.caption == 'del')
         ):
             return _run_main(msg, True, 'debug delete')
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            logging.info("No join_date")
-            for user in msg.new_chat_members:
-                now = datetime.utcnow()
-                JOINED_USERS[(msg.chat.id, user.id)] = now
-                # TODO this might be find_one_and_update
-                db.joined_user.save(
+            now = datetime.utcnow()
+            JOINED_USERS[(msg.chat.id, msg.from_user.id)] = now
+            db.joined_user.find_one_and_update(
+                {
+                    'chat_id': msg.chat.id,
+                    'user_id': msg.from_user.id,
+                },
+                {'$set':
                     {
-                        'chat_id': msg.chat.id,
-                        'user_id': user.id,
-                    },
-                    {'$set': {
                         'date': now,
                     }},
-                    upsert=True,
-                )
+                upsert=True,
+            )
             try:
                 bot.delete_message(msg.chat.id, msg.message_id)
+                logging.info("No join_date")
                 db.event.save({
                     'type': types,
                     'chat_id': msg.chat.id,
@@ -147,13 +147,6 @@ def create_bot(api_token, db):
                 })
                 return _run_main(msg, True, types)
             except Exception or AttributeError as ex:
-                db.fail.save({
-                    'date': datetime.utcnow(),
-                    'reason': str(ex),
-                    'traceback': format_exc(),
-                    'chat_id': msg.chat.id,
-                    'msg_id': msg.message_id,
-                })
                 if (
                         'message to delete not found' in str(ex)
                         # or "message can\'t be deleted" in str(ex)
@@ -183,17 +176,10 @@ def create_bot(api_token, db):
                         'username': msg.from_user.username,
                         'date': datetime.utcnow(),
                     })
-                    return _run_main(msg, True, types)
+                    return _run_main(msg, True, reason)
                 else:
                     return _run_main(msg, False, 'admin')
             except Exception or AttributeError as ex:
-                db.fail.save({
-                    'date': datetime.utcnow(),
-                    'reason': str(ex),
-                    'traceback': format_exc(),
-                    'chat_id': msg.chat.id,
-                    'msg_id': msg.message_id,
-                })
                 if (
                         'message to delete not found' in str(ex)
                         # or "message can\'t be deleted" in str(ex)
@@ -209,7 +195,7 @@ def create_bot(api_token, db):
     @bot.message_handler(content_types=['sticker'])
     def handle_sticker(msg):
         if (
-                msg.from_user.username == 'Shinno'
+                msg.from_user.username == 'Shinno1002'
                 and (msg.text == 'del' or msg.caption == 'del')
         ):
             return _run_main(msg, True, 'debug delete')
@@ -224,11 +210,11 @@ def create_bot(api_token, db):
             logging.error("User has been in the chat longer than the set safe hours")
             return _run_main(msg, False, None)
         else:
-            return _run_main(msg, False, 'sticker')
+            return _run_main(msg, False, 'delete_sticker')
 
     @bot.message_handler(content_types=['document'])
     def handle_document(msg):
-        simplification(msg, 'delete_document')
+        simplification(msg, 'delete_document', 'document')
         # 'document': {
         #     'file_id': msg.document.file_id,
         #     'file_name': msg.document.file_name,
@@ -239,14 +225,14 @@ def create_bot(api_token, db):
 
     @bot.message_handler(content_types=['photo'])
     def handle_photo(msg):
-        simplification(msg, 'delete_photo')
+        simplification(msg, 'delete_photo', 'photo')
         # 'photo': {
         #     'photo': 'photo_deleted',
         # },.
 
     @bot.message_handler(content_types=['audio'])
     def handle_audio(msg):
-        simplification(msg, 'delete_audio')
+        simplification(msg, 'delete_audio', 'audio')
         # 'audio': {
         #     'file_id': msg.audio.file_id,
         #     'title': msg.audio.title,
@@ -257,7 +243,7 @@ def create_bot(api_token, db):
 
     @bot.message_handler(content_types=['voice'])
     def handle_voice(msg):
-        simplification(msg, 'delete_voice')
+        simplification(msg, 'delete_voice', 'voice')
         # 'voice': {
         #     'file_id': msg.voice.file_id,
         #     'file_size': msg.voice.file_size,
@@ -266,7 +252,7 @@ def create_bot(api_token, db):
 
     @bot.message_handler(content_types=['video'])
     def handle_video(msg):
-        simplification(msg, 'delete_video')
+        simplification(msg, 'delete_video', 'video')
         # 'video': {
         #     'file_id': msg.video.file_id,
         #     'file_size': msg.video.file_size,
@@ -275,7 +261,7 @@ def create_bot(api_token, db):
 
     @bot.message_handler(content_types=['location'])
     def handle_location(msg):
-        simplification(msg, 'delete_location')
+        simplification(msg, 'delete_location', 'location')
         # 'location': {
         #     'latitude': msg.location.latitude,
         #     'longitude': msg.location.longitude,
@@ -283,7 +269,7 @@ def create_bot(api_token, db):
 
     @bot.message_handler(content_types=['contact'])
     def handle_contact(msg):
-        simplification(msg, 'delete_contact')
+        simplification(msg, 'delete_contact', 'contact')
         # 'contact': {
         #     'phone_number': msg.contact.phone_number,
         #     'first_name': msg.contact.first_name,
@@ -291,7 +277,7 @@ def create_bot(api_token, db):
 
     @bot.message_handler(content_types=['video_note'])
     def handle_video_note(msg):
-        simplification(msg, 'delete_video_note')
+        simplification(msg, 'delete_video_note', 'video_note')
         # 'video_note': {
         #     'videonote': 'video note deleted',
         # },
@@ -394,13 +380,49 @@ def create_bot(api_token, db):
 
     def get_delete_link(msg):
         if (
-                msg.from_user.username == 'Shinno'
+                msg.from_user.username == 'Shinno1002'
                 and (msg.text == 'del' or msg.caption == 'del')
         ):
             return True, 'debug delete'
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
-            return False, None
+            now = datetime.utcnow()
+            JOINED_USERS[(msg.chat.id, msg.from_user.id)] = now
+            db.joined_user.find_one_and_update(
+                {
+                    'chat_id': msg.chat.id,
+                    'user_id': msg.from_user.id,
+                },
+                {'$set':
+                    {
+                        'date': now,
+                    }},
+                upsert=True,
+            )
+            try:
+                bot.delete_message(msg.chat.id, msg.message_id)
+                logging.info("No join_date")
+                db.event.save({
+                    'type': 'delete_link',
+                    'chat_id': msg.chat.id,
+                    'chat_username': msg.chat.username,
+                    'user_id': msg.from_user.id,
+                    'username': msg.from_user.username,
+                    'date': datetime.utcnow(),
+                })
+                return True, None
+            except Exception or AttributeError as ex:
+                if (
+                        'message to delete not found' in str(ex)
+                        # or "message can\'t be deleted" in str(ex)
+                        or "be deleted" in str(ex)
+                        or 'MESSAGE_ID_INVALID' in str(ex)
+                        # or 'message to forward not found' in str(ex)
+                ):
+                    logging.error('Failed to process spam message: {}'.format(
+                        ex))
+                else:
+                    raise
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
@@ -523,9 +545,10 @@ def create_bot(api_token, db):
                     'chat_id': msg.chat.id,
                     'user_id': user.id,
                 },
-                {'$set': {
-                    'date': now,
-                }},
+                {'$set':
+                    {
+                        'date': now
+                    }},
                 upsert=True,
             )
 
@@ -743,19 +766,19 @@ def create_bot(api_token, db):
             return
         if bool:
             try:
-                user_display_name = format_user_display_name(msg.from_user)
+                # user_display_name = format_user_display_name(msg.from_user)
                 event_key = (msg.chat.id, msg.from_user.id)
-                if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
-                    # Notify about spam from same user one time per hour
-                    if (
-                            event_key not in DELETE_EVENTS
-                            or DELETE_EVENTS[event_key] <
-                            (datetime.utcnow() - timedelta(hours=1))
-                    ):
-                        ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
-                            html.escape(user_display_name), reason
-                        )
-                        bot.reply_to(msg.chat.id, ret, parse_mode='HTML')
+                # if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
+                #     # Notify about spam from same user one time per hour
+                #     if (
+                #             event_key not in DELETE_EVENTS
+                #             or DELETE_EVENTS[event_key] <
+                #             (datetime.utcnow() - timedelta(hours=1))
+                #     ):
+                #         ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
+                #             html.escape(user_display_name), reason
+                #         )
+                #         bot.reply_to(msg.chat.id, ret, parse_mode='HTML')
                 DELETE_EVENTS[event_key] = datetime.utcnow()
 
                 ids = {GLOBAL_LOG_CHANNEL_ID['production']}
@@ -787,13 +810,6 @@ def create_bot(api_token, db):
             try:
                 bot.delete_message(msg.chat.id, msg.message_id)
             except Exception or AttributeError as ex:
-                db.fail.save({
-                    'date': datetime.utcnow(),
-                    'reason': str(ex),
-                    'traceback': format_exc(),
-                    'chat_id': msg.chat.id,
-                    'msg_id': msg.message_id,
-                })
                 if (
                         'message to delete not found' in str(ex)
                         # or "message can\'t be deleted" in str(ex)
