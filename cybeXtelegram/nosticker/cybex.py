@@ -21,7 +21,7 @@ from model import load_group_config
 HELP = """
 *CYBEX Anti-Spam Bot Help*
 
-*cybexantispam_bot deletes all posts by users that joined less than a month ago that contain:*
+*cybexantispam_bot deletes all posts by users that joined less than a set time period that contain:*
 1. links
 2. images
 3. videos
@@ -41,7 +41,7 @@ HELP = """
 /help - display this help message
 /stat - display simple statistics about number of deleted messages
 /cybexantispamrealbotset publog=[yes|no] - enable/disable messages to group about deleted posts
-/cybexantispamrealbotset safehours=[int] - number in hours, how long new users are restricted to post links and forward posts, default is 24 hours (Allowed value is number between 1 and 8760)
+/cybexantispamrealbotset safehours=[int] - number in hours, how long new users are restricted to post links and forward posts, default is 168 hours (Allowed value is number between 1 and 8760)
 /cybexantispamget publog - get value of publog setting
 /cybexantispamget safehours - get value of safehours setting
 
@@ -55,7 +55,7 @@ json - display full message data in JSON format
 
 *Questions, Feedback*
 Support chat - [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
-Author's telegram -  [@Shinno](https://t.me/Shinno)
+Author's telegram -  [@Shinno](https://t.me/Shinno1002)
 Use github issues to report bugs - [github issues](https://github.com/staniya/CYBEX/issues)
 """
 
