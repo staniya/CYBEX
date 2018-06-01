@@ -3,9 +3,7 @@ import re
 from collections import Counter
 from pprint import pprint
 from pathlib import Path
-from traceback import format_exc
 import urllib
-# TODO make this compatible for python3
 
 import jsondate
 import yaml
@@ -285,7 +283,11 @@ def create_bot(api_token, db):
     @bot.message_handler(commands=['start', 'help'])
     def handle_start_help(msg):
         if msg.chat.type == 'private':
-            bot.reply_to(msg, HELP, parse_mode='Markdown')
+            if msg.from_user.id not in SUPERUSER_IDS:
+                delete_message_safe(msg)
+                bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
+            else:
+                bot.reply_to(msg, HELP, parse_mode='Markdown')
         else:
             if msg.text.strip() in (
                     '/start', '/start@cybexantispamrealbot', '/start@cybexantispamrealtestbot',
@@ -467,10 +469,15 @@ def create_bot(api_token, db):
     @bot.message_handler(commands=['setlogformat'])
     def handle_setlogformat(msg):
         if msg.chat.type != 'channel':
-            admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
-            if msg.from_user.id not in admin_ids:
-                # Silently ignore /setlogformat command from non-admin in non-channel
+            if msg.chat.type == 'private':
+                bot.send_message(msg.chat.id, 'This command has to be called from a channel')
+            else:
                 delete_message_safe(msg)
+            admins = bot.get_chat_administrators(msg.chat.id)
+            admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
+            if msg.from_user.id not in admin_ids:
+                delete_message_safe(msg)
+                # bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
             else:
                 bot.send_message(msg.chat.id, 'This command has to be called from a channel')
             return
@@ -485,14 +492,14 @@ def create_bot(api_token, db):
 
     @bot.message_handler(commands=['setlog'])
     def handle_setlog(msg):
-        admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
+        admin_ids = SUPERUSER_IDS
         if msg.chat.type not in ('group', 'supergroup'):
             bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
             return
         if not msg.forward_from_chat or msg.forward_from_chat.type != 'channel':
             if msg.from_user.id not in admin_ids:
-                # Silently ignore /setlog command from non-admin
                 delete_message_safe(msg)
+                # bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
                 pass
             else:
                 bot.send_message(msg.chat.id, 'Command /setlog must be forwarded from channel')
@@ -504,7 +511,7 @@ def create_bot(api_token, db):
 
             if msg.from_user.id not in admin_ids:
                 delete_message_safe(msg)
-                bot.send_message(msg.chat.id, "You are not an administrator")
+                # bot.send_message(msg.chat.id, "You are not an administrator")
                 return
 
             set_setting(GROUP_CONFIG, msg.chat.id, 'log_channel_id', channel.id)
@@ -513,22 +520,15 @@ def create_bot(api_token, db):
 
     @bot.message_handler(commands=['unsetlog'])
     def handle_unsetlog(msg):
-        admin_ids = [x.user.id for x in bot.get_chat_administrators(msg.chat.id)]
+        admin_ids = SUPERUSER_IDS
         if msg.chat.type not in ('group', 'supergroup'):
-            if msg.from_user.id not in admin_ids:
-                # Silently ignore /setlog command from non-admin
-                delete_message_safe(msg)
-                pass
-            else:
-                bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
+            bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
             return
 
         if msg.from_user.id not in admin_ids:
-            if msg.from_user.id not in admin_ids:
-                delete_message_safe(msg)
-                pass
-            else:
-                bot.send_message(msg.chat.id, "You are not an administrator")
+            # if msg.from_user.id not in admin_ids:
+            delete_message_safe(msg)
+            # bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
             return
 
         set_setting(GROUP_CONFIG, msg.chat.id, 'log_channel_id', None)
@@ -555,14 +555,14 @@ def create_bot(api_token, db):
     @bot.message_handler(commands=['cybexantispamrealbotset', 'cybexantispamrealbotget'])
     def handle_set_get(msg):
         if msg.chat.type not in ('group', 'supergroup'):
-            bot.send_message(msg.chat.id, "This command has to be called from a group")
+            bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
             return
 
         admins = bot.get_chat_administrators(msg.chat.id)
         admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
         if msg.from_user.id not in admin_ids:
             delete_message_safe(msg)
-            # bot.send_message(msg.chat.id, 'Access denied')
+            # bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
             return
         re_cmd_set = re.compile(r'^/cybexantispamrealbotset (publog|safehours)=(.+)$')
         re_cmd_get = re.compile(r'^/cybexantispamrealbotget (publog|safehours)=()$')
@@ -619,6 +619,10 @@ def create_bot(api_token, db):
                     '/stat', '/stat@cybexantispamrealbot', '/stat@cybexantispamrealtestbot',
             ):
                 bot.delete_message(msg.chat.id, msg.message_id)
+            return
+        if msg.from_user.id not in SUPERUSER_IDS:
+            delete_message_safe(msg)
+            bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
             return
         days = []
         top_today = Counter()
