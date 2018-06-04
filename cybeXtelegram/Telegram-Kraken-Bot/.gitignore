@@ -90,10 +90,16 @@ ENV/
 env.bak/
 venv.bak/
 .production
-/production
+production/
+/production/
+/.production/
 
 config.json
 kraken.key
+_config.yml
+demo.gif
+Procfile
+README.md
 
 # Spyder project settings
 .spyderproject
