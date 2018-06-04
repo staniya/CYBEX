@@ -3,8 +3,11 @@ import re
 from collections import Counter
 from pprint import pprint
 from pathlib import Path
-import urllib
-
+try:
+    from urllib import quote, urlopen
+except ImportError:
+    from urllib.parse import quote
+    from urllib.request import urlopen
 import jsondate
 import yaml
 import html
@@ -837,7 +840,7 @@ def main():
     if opts.mode == 'test':
         token = TELEGRAM_BOT_TOKEN_TEST
     else:
-        token = TELEGRAM_BOT_TOKEN
+        token = TELEGRAM_BOT_TOKEN_TEST
     db = connect_db()
     bot = create_bot(token, db)
     while True:
