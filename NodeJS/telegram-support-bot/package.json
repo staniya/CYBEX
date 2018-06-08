@@ -27,7 +27,7 @@
     "debug": "^3.0.0",
     "node-fetch": "^2.0.0",
     "sandwich-stream": "^1.0.0",
-    "telegraf": "^3.19.0"
+    "telegraf": "^3.21.2"
   },
   "devDependencies": {
     "ava": "^0.25.0",

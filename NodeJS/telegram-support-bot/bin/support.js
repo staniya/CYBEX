@@ -5,12 +5,12 @@ const {
 
 
 /* edit below */
-const bot = new Telegraf("517916025:AAEce53YfGCSePYZ_Qn-spqdPwqWeC5WAdo") // support bot
+const bot = new Telegraf("540487115:AAHbAdRgytK0ou0HUX1cbBDMMseQZFMKgBg") // support bot
 var staff_chat = "-290951152" // telegram staff group chat id
 var owner_id = "547143881" // telegram owner id
-var supported_bot = "Management Bot" // service name of the supported bot
-var startCommandText = "Welcome in our support chat! Ask your question here."
-var faqCommandText = "Check out our FAQ here: Address to your FAQ"
+var supported_bot = "Customer Service" // service name of the supported bot
+var startCommandText = "Welcome to our support chat! Ask your question here."
+var faqCommandText = "Check out our FAQ here: Address to FAQ"
 /* edit end */
 
 var ticketID
@@ -224,10 +224,10 @@ bot.hears(/(.+)/, (ctx) => { // creates a ticket for users and let group admins 
             var userid = replyText.match(new RegExp("#" + "(.*)" + " from"))
             var name = replyText.match(new RegExp("from " + "(.*)" + " @"))
             if (ctx.message.text === "me") { // accept ticket
-              bot.telegram.sendMessage(staff_chat, "<b>Ticket #" + userid[1] + "</b> was accepted by " + ctx.message.from.first_name + " -> /open", noSound)
+              return bot.telegram.sendMessage(staff_chat, "<b>Ticket #" + userid[1] + "</b> was accepted by " + ctx.message.from.first_name + " -> /open", noSound)
             } else {
               ticketStatus[userid[1]] = false
-              bot.telegram.sendMessage(userid[1], "Dear <b>" + name[1] + "</b>,\n\n" + ctx.message.text + "\n\nBest regards,\n" + ctx.message.from.first_name, html)
+              return bot.telegram.sendMessage(userid[1], "Dear <b>" + name[1] + "</b>,\n\n" + ctx.message.text + "\n\nBest regards,\n" + ctx.message.from.first_name, html)
               console.log("Answer: Ticket #" + ticketID + " Dear " + name[1] + " " + ctx.message.text + " from " + ctx.message.from.first_name)
             }
           } catch (e) {}
@@ -248,9 +248,9 @@ bot.hears(/(.+)/, (ctx) => { // creates a ticket for users and let group admins 
         userInfo += "</b> from " + ctx.message.from.first_name + " "
         userInfo += "@" + ctx.message.from.username + " Language: " + ctx.message.from.language_code + "\n\n"
         if (ticketSent === false) {
-          bot.telegram.sendMessage(staff_chat, "<b>Ticket #" + ticketID + userInfo + ctx.message.text, html)
+          return bot.telegram.sendMessage(staff_chat, "<b>Ticket #" + ticketID + userInfo + ctx.message.text, html)
         } else if (ticketSent === true) {
-          bot.telegram.sendMessage(staff_chat, "<b>Ticket #" + ticketID + userInfo + ctx.message.text, noSound)
+          return bot.telegram.sendMessage(staff_chat, "<b>Ticket #" + ticketID + userInfo + ctx.message.text, noSound)
         }
         console.log("Ticket #" + ticketID + userInfo.replace("\n\n", ": ") + ctx.message.text) 
 		if (ticketSent === true) {

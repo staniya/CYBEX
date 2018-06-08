@@ -840,7 +840,7 @@ def main():
     if opts.mode == 'test':
         token = TELEGRAM_BOT_TOKEN_TEST
     else:
-        token = TELEGRAM_BOT_TOKEN_TEST
+        token = TELEGRAM_BOT_TOKEN
     db = connect_db()
     bot = create_bot(token, db)
     while True:
