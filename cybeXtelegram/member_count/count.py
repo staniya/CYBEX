@@ -109,6 +109,7 @@ def create_bot(api_token, db):
         now = datetime.utcnow()
         ALL_LINKS[link] = now
 
+        #TODO have to change msg.chat.id to link
         number_users = bot.get_chat_members_count(link)
         try:
             db.user_numbers.find_one_and_update(
@@ -141,7 +142,8 @@ def create_bot(api_token, db):
             delete_message_safe(msg)
             bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
             return
-        re_cmd_link = re.compile(r'^/link (save)=((http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)')
+        re_cmd_link = re.compile(
+            r'^/link (save)=(?:(?:@|＠)(?!\/))([a-zA-Z0-9/_.\-!@#$%&^*]{1,100})(?:\b(?!@|＠)|$)')
         if msg.text.startwith('/link'):
             match = re_cmd_link.match(msg.text)
             action = 'SET'
@@ -202,7 +204,7 @@ def create_bot(api_token, db):
                     for event in db.user_numbers.find(query):
                         num += 1
                         key = (
-                            '{}'.format(event['link']) if event['link']
+                            '@{}'.format(event['link']) if event['link']
                             else '#{}'.format(event['chat_id'])
                         )
                         all_records[key] += 1
