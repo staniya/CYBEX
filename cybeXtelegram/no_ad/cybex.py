@@ -1,6 +1,5 @@
 import os
 import re
-from collections import Counter
 from pprint import pprint
 from pathlib import Path
 try:
@@ -8,9 +7,7 @@ try:
 except ImportError:
     from urllib.parse import quote
     from urllib.request import urlopen
-import jsondate
 import yaml
-import html
 import sys
 import logging
 from argparse import ArgumentParser
@@ -48,22 +45,11 @@ HELP = """
 /cybexantispamget publog - get value of publog setting
 /cybexantispamget safehours - get value of safehours setting
 
-*How to log deleted messages to private channel*
-Add bot to the channel as admin. Write /setlog to the channel. Forward message to the group.
-Write /unsetlog in the group to disable logging to channel.
-You can control format of logs with /setlogformat <format> command sent to the channel. The argument of this command could be: simple, json, forward or any combination of items delimited by space e.g. json,forward:
-simple - display basic info about message + the
-text of message (or caption text of photo/video)
-json - display full message data in JSON format
-
 *Questions, Feedback*
 Support chat - [@Administrators](https://t.me/joinchat/IJzAyRFXj_C42lkLd8iVWQ)
 Author's telegram -  [@Shinno](https://t.me/Shinno1002)
 Use github issues to report bugs - [github issues](https://github.com/staniya/CYBEX/issues)
 """
-
-# turn application into a daemon
-pid = "/tmp/cybex.pid"
 
 '''
 # Load the config file
@@ -114,12 +100,12 @@ DELETE_EVENTS = {}
 def create_bot(api_token, db):
     bot = telebot.TeleBot(api_token)
 
-    def simplification(msg, types, reason):
+    def simplification(msg):
         if (
                 msg.from_user.username == 'Shinno1002'
                 and (msg.text == 'del' or msg.caption == 'del')
         ):
-            return _run_main(msg, True, 'debug delete')
+            return _run_main(msg, True)
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
             now = datetime.utcnow()
@@ -138,15 +124,7 @@ def create_bot(api_token, db):
             try:
                 bot.delete_message(msg.chat.id, msg.message_id)
                 logging.info("No join_date")
-                db.event.save({
-                    'type': types,
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                })
-                return _run_main(msg, True, types)
+                return _run_main(msg, True)
             except Exception or AttributeError as ex:
                 if (
                         'message to delete not found' in str(ex)
@@ -164,22 +142,14 @@ def create_bot(api_token, db):
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
             logging.error("User has been in the chat longer than the set safe hours")
-            return _run_main(msg, False, None)
+            return _run_main(msg, False)
         else:
             try:
                 if msg.from_user.id not in SUPERUSER_IDS:
                     bot.delete_message(msg.chat.id, msg.message_id)
-                    db.event.save({
-                        'type': types,
-                        'chat_id': msg.chat.id,
-                        'chat_username': msg.chat.username,
-                        'user_id': msg.from_user.id,
-                        'username': msg.from_user.username,
-                        'date': datetime.utcnow(),
-                    })
-                    return _run_main(msg, True, reason)
+                    return _run_main(msg, True)
                 else:
-                    return _run_main(msg, False, 'admin')
+                    return _run_main(msg, False)
             except Exception or AttributeError as ex:
                 if (
                         'message to delete not found' in str(ex)
@@ -199,89 +169,51 @@ def create_bot(api_token, db):
                 msg.from_user.username == 'Shinno1002'
                 and (msg.text == 'del' or msg.caption == 'del')
         ):
-            return _run_main(msg, True, 'debug delete')
+            return _run_main(msg, True)
         join_date = get_join_date(msg.chat.id, msg.from_user.id)
         if join_date is None:
             logging.error("No join_date")
-            return _run_main(msg, False, None)
+            return _run_main(msg, False)
         safehours = get_setting(
             GROUP_CONFIG, msg.chat.id, 'safehours', DEFAULT_SAFE_HOURS
         )
         if datetime.utcnow() - timedelta(hours=safehours) > join_date:
             logging.error("User has been in the chat longer than the set safe hours")
-            return _run_main(msg, False, None)
+            return _run_main(msg, False)
         else:
-            return _run_main(msg, False, 'delete_sticker')
+            return _run_main(msg, False)
 
     @bot.message_handler(content_types=['document'])
     def handle_document(msg):
-        simplification(msg, 'delete_document', 'document')
-        # 'document': {
-        #     'file_id': msg.document.file_id,
-        #     'file_name': msg.document.file_name,
-        #     'mime_type': msg.document.mime_type,
-        #     'file_size': msg.document.file_size,
-        #     'thumb': msg.document.thumb.__dict__ if msg.document.thumb else None,
-        # },
+        simplification(msg)
 
     @bot.message_handler(content_types=['photo'])
     def handle_photo(msg):
-        simplification(msg, 'delete_photo', 'photo')
-        # 'photo': {
-        #     'photo': 'photo_deleted',
-        # },.
+        simplification(msg)
 
     @bot.message_handler(content_types=['audio'])
     def handle_audio(msg):
-        simplification(msg, 'delete_audio', 'audio')
-        # 'audio': {
-        #     'file_id': msg.audio.file_id,
-        #     'title': msg.audio.title,
-        #     'file_size': msg.audio.file_size,
-        #     'performer': msg.audio.performer,
-        #     'mime_type': msg.audio.mime_type,
-        # },
+        simplification(msg)
 
     @bot.message_handler(content_types=['voice'])
     def handle_voice(msg):
-        simplification(msg, 'delete_voice', 'voice')
-        # 'voice': {
-        #     'file_id': msg.voice.file_id,
-        #     'file_size': msg.voice.file_size,
-        #     'mime_type': msg.voice.mime_type,
-        # },
+        simplification(msg)
 
     @bot.message_handler(content_types=['video'])
     def handle_video(msg):
-        simplification(msg, 'delete_video', 'video')
-        # 'video': {
-        #     'file_id': msg.video.file_id,
-        #     'file_size': msg.video.file_size,
-        #     'mime_type': msg.video.mime_type,
-        # },
+        simplification(msg)
 
     @bot.message_handler(content_types=['location'])
     def handle_location(msg):
-        simplification(msg, 'delete_location', 'location')
-        # 'location': {
-        #     'latitude': msg.location.latitude,
-        #     'longitude': msg.location.longitude,
-        # },
+        simplification(msg)
 
     @bot.message_handler(content_types=['contact'])
     def handle_contact(msg):
-        simplification(msg, 'delete_contact', 'contact')
-        # 'contact': {
-        #     'phone_number': msg.contact.phone_number,
-        #     'first_name': msg.contact.first_name,
-        # },
+        simplification(msg)
 
     @bot.message_handler(content_types=['video_note'])
     def handle_video_note(msg):
-        simplification(msg, 'delete_video_note', 'video_note')
-        # 'video_note': {
-        #     'videonote': 'video note deleted',
-        # },
+        simplification(msg)
 
     @bot.message_handler(commands=['start', 'help'])
     def handle_start_help(msg):
@@ -407,14 +339,6 @@ def create_bot(api_token, db):
             try:
                 bot.delete_message(msg.chat.id, msg.message_id)
                 logging.info("No join_date")
-                db.event.save({
-                    'type': 'delete_link',
-                    'chat_id': msg.chat.id,
-                    'chat_username': msg.chat.username,
-                    'user_id': msg.from_user.id,
-                    'username': msg.from_user.username,
-                    'date': datetime.utcnow(),
-                })
                 return True, None
             except Exception or AttributeError as ex:
                 if (
@@ -440,24 +364,8 @@ def create_bot(api_token, db):
         for scope, entities in locations:
             for ent in entities:
                 if ent.type in ('url', 'text_link'):
-                    db.event.save({
-                        'type': 'delete_link',
-                        'chat_id': msg.chat.id,
-                        'chat_username': msg.chat.username,
-                        'user_id': msg.from_user.id,
-                        'username': msg.from_user.username,
-                        'date': datetime.utcnow(),
-                    })
                     return True, 'external link'
                 if ent.type in ('email',):
-                    db.event.save({
-                        'type': 'delete_link',
-                        'chat_id': msg.chat.id,
-                        'chat_username': msg.chat.username,
-                        'user_id': msg.from_user.id,
-                        'username': msg.from_user.username,
-                        'date': datetime.utcnow(),
-                    })
                     return True, 'email'
                 if ent.type == 'mention':
                     text = msg.text if scope == 'text' else msg.caption
@@ -468,75 +376,6 @@ def create_bot(api_token, db):
             if msg.forward_from or msg.forward_from_chat:
                 return False, 'forwarded'
             return False, None
-
-    @bot.message_handler(commands=['setlogformat'])
-    def handle_setlogformat(msg):
-        if msg.chat.type != 'channel':
-            if msg.chat.type == 'private':
-                bot.send_message(msg.chat.id, 'This command has to be called from a channel')
-            else:
-                delete_message_safe(msg)
-            admins = bot.get_chat_administrators(msg.chat.id)
-            admin_ids = set([x.user.id for x in admins]) | set(SUPERUSER_IDS)
-            if msg.from_user.id not in admin_ids:
-                delete_message_safe(msg)
-                # bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
-            else:
-                bot.send_message(msg.chat.id, 'This command has to be called from a channel')
-            return
-        valid_formats = ('json', 'simple')
-        formats = msg.text.split(' ')[-1].split(',')
-        if any(x not in valid_formats for x in formats):
-            bot.send_message(msg.chat.id, 'Invalid arguments. Valid choices: {}'.format(
-                ', '.join(valid_formats), ))
-            return
-        set_setting(GROUP_CONFIG, msg.chat.id, 'logformat', formats)
-        bot.send_message(msg.chat.id, 'Set logformat for this channel')
-
-    @bot.message_handler(commands=['setlog'])
-    def handle_setlog(msg):
-        admin_ids = SUPERUSER_IDS
-        if msg.chat.type not in ('group', 'supergroup'):
-            bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
-            return
-        if not msg.forward_from_chat or msg.forward_from_chat.type != 'channel':
-            if msg.from_user.id not in admin_ids:
-                delete_message_safe(msg)
-                # bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
-                pass
-            else:
-                bot.send_message(msg.chat.id, 'Command /setlog must be forwarded from channel')
-                return
-            channel = msg.forward_from_chat
-            if bot.get_me().id not in admin_ids:
-                bot.send_message(msg.chat.id, 'Assign me as an administrator in the chat')
-                return
-
-            if msg.from_user.id not in admin_ids:
-                delete_message_safe(msg)
-                # bot.send_message(msg.chat.id, "You are not an administrator")
-                return
-
-            set_setting(GROUP_CONFIG, msg.chat.id, 'log_channel_id', channel.id)
-            tgid = '@{}'.format(msg.chat.username if msg.chat.username else '#{}'.format(msg.chat.id))
-            bot.send_message(msg.chat.id, 'Set log channel for group {}'.format(tgid))
-
-    @bot.message_handler(commands=['unsetlog'])
-    def handle_unsetlog(msg):
-        admin_ids = SUPERUSER_IDS
-        if msg.chat.type not in ('group', 'supergroup'):
-            bot.send_message(msg.chat.id, "This command has to be called from a group or a supergroup")
-            return
-
-        if msg.from_user.id not in admin_ids:
-            # if msg.from_user.id not in admin_ids:
-            delete_message_safe(msg)
-            # bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
-            return
-
-        set_setting(GROUP_CONFIG, msg.chat.id, 'log_channel_id', None)
-        tgid = '@{}'.format(msg.chat.username if msg.chat.username else '#{}'.format(msg.chat.id))
-        bot.send_message(msg.chat.id, 'Unset log channel for group {}'.format(tgid))
 
     @bot.message_handler(content_types=['new_chat_members'])
     def handle_new_chat_members(msg):
@@ -615,140 +454,6 @@ def create_bot(api_token, db):
             else:
                 bot.send_message(msg.chat.id, 'Unknown action: {}'.format(key))
 
-    @bot.message_handler(commands=['stat'])
-    def handle_stat(msg):
-        if msg.chat.type != 'private':
-            if msg.text.strip() in (
-                    '/stat', '/stat@cybexantispamrealbot', '/stat@cybexantispamrealtestbot',
-            ):
-                bot.delete_message(msg.chat.id, msg.message_id)
-            return
-        if msg.from_user.id not in SUPERUSER_IDS:
-            delete_message_safe(msg)
-            bot.send_message(msg.chat.id, 'You need to be an administrator to use this command')
-            return
-        days = []
-        top_today = Counter()
-        top_ystd = Counter()
-        top_week = Counter()
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        ret = '\n*STATS*\n'
-        for x in range(7):
-            day = today - timedelta(days=x)
-            types = ['delete_sticker', 'delete_document', 'delete_photo', 'delete_audio',
-                     'delete_voice', 'delete_video', 'delete_location', 'delete_contact',
-                     'delete_video_note', 'delete_link']
-            for t_type in types:
-                query = {'$and': [
-                    {'type': t_type},
-                    {'date': {'$gte': day}},
-                    {'date': {'$lt': day + timedelta(days=1)}},
-                ]}
-                num = 0
-                for event in db.event.find(query):
-                    num += 1
-                    key = (
-                        '@{}'.format(event['chat_username']) if event['chat_username']
-                        else '#{}'.format(event['chat_id'])
-                    )
-                    if day == today:
-                        top_today[key] += 1
-                    if day == (today - timedelta(days=1)):
-                        top_ystd[key] += 1
-                    top_week[key] += 1
-                days.insert(0, num)
-
-                # querying data for the seven day period
-                var = str(db.event.count({'$and': [{'type': t_type}, ]}))
-                res = db.event.find({'$and': [{'type': t_type}, ]})._Cursor__spec['$and'][0]["type"]
-                seven_days = '\nThe number of {} deleted in the past 7 days: {}'.format(res, var)
-                if seven_days not in ret:
-                    ret += seven_days
-                else:
-                    continue
-        ret += '\n\nTop today ({}):\n{}'.format(
-            len(top_today),
-            '\n'.join('  %s (%d)' % x for x in top_today.most_common()
-                      ))
-        ret += '\n\nTop yesterday (%d):\n%s' % (
-            len(top_ystd),
-            '\n'.join('  %s (%d)' % x for x in top_ystd.most_common()
-                      ))
-        ret += '\n\nTop 10 week:\n%s' % '\n'.join('  %s (%d)' % x for x in top_week.most_common(10))
-        bot.reply_to(msg, ret)
-
-    def format_user_display_name(user):
-        if user.first_name and user.last_name:
-            return '{} {}'.format(
-                user.first_name,
-                user.last_name,
-            )
-        elif user.first_name:
-            return user.first_name
-        elif user.username:
-            return user.first_name
-        else:
-            return '#{}'.format(user.id)
-
-    def log_event_to_channel(msg, reason, chid, formats):
-        if msg.chat.username:
-            from_chatname = '<a href="https://t.me/{}">@{}</a>'.format(
-                msg.chat.username, msg.chat.username
-            )
-        else:
-            from_chatname = '#{}'.format(msg.chat.id)
-        user_display_name = format_user_display_name(msg.from_user)
-        from_info = (
-            'Chat: {}\nUser: <a href=tg://user?id={}">{}</a>'.format(
-                from_chatname, msg.from_user.id, user_display_name)
-        )
-        # if 'forward' in formats:
-        #     try:
-        #         msg.forward_message(
-        #             chid, msg.chat.id, msg.message_id
-        #         )
-        #     except Exception or AttributeError as ex:
-        #         db.fail.save({
-        #             'date': datetime.utcnow(),
-        #             'reason': str(ex),
-        #             'traceback': format_exc(),
-        #             'chat_id': msg.chat.id,
-        #             'msg_id': msg.message_id,
-        #         })
-        #         if (
-        #                 'MESSAGE_ID_INVALID' in str(ex) or
-        #                 'message to forward not found' in str(ex)
-        #         ):
-        #             logging.error(
-        #                 'Failed to forward spam message: {}'.format(ex)
-        #             )
-        #         else:
-        #             raise
-
-        if 'json' in formats:
-            msg_dump = msg.to_dict()
-            msg_dump['meta'] = {
-                'reason': reason,
-                'date': datetime.utcnow(),
-            }
-            dump = jsondate.dumps(msg_dump, indent=4, ensure_ascii=False)
-            dump = html.escape(dump)
-            content = '{}\n<pre>{}</pre>'.format(from_info, dump)
-            try:
-                bot.reply_to(chid, content, parse_mode='HTML')
-            except Exception as ex:
-                if 'message is too long' in str(ex):
-                    logging.error('Failed to log message to channel: {}'.format(ex))
-                else:
-                    raise
-            if 'simple' in formats:
-                text = html.escape(msg.text or msg.caption)
-                content = (
-                    '{}\nReason: {}\nContent:\n<pre>{}</pre>'.format(
-                        from_info, reason, text)
-                )
-                bot.reply_to(chid, content, parse_mode='HTML')
-
     def delete_message_safe(msg):
         try:
             bot.delete_message(msg.chat.id, msg.message_id)
@@ -764,46 +469,16 @@ def create_bot(api_token, db):
             else:
                 raise
 
-    def _run_main(msg, bool, reason):
+    def _run_main(msg, bool):
         """
         :param bool: bool
-        :param reason: str
         """
         if msg.chat.type in ('channel', 'private'):
             return
         if bool:
             try:
-                # user_display_name = format_user_display_name(msg.from_user)
                 event_key = (msg.chat.id, msg.from_user.id)
-                # if get_setting(GROUP_CONFIG, msg.chat.id, 'publog', True):
-                #     # Notify about spam from same user one time per hour
-                #     if (
-                #             event_key not in DELETE_EVENTS
-                #             or DELETE_EVENTS[event_key] <
-                #             (datetime.utcnow() - timedelta(hours=1))
-                #     ):
-                #         ret = 'Removed msg from <i>{}</i>. Reason: new user + {}'.format(
-                #             html.escape(user_display_name), reason
-                #         )
-                #         bot.reply_to(msg.chat.id, ret, parse_mode='HTML')
                 DELETE_EVENTS[event_key] = datetime.utcnow()
-
-                ids = {GLOBAL_LOG_CHANNEL_ID['production']}
-                channel_id = get_setting(
-                    GROUP_CONFIG, msg.chat.id, 'log_channel_id'
-                )
-                if channel_id:
-                    ids.add(channel_id)
-                for chid in ids:
-                    formats = get_setting(
-                        GROUP_CONFIG, chid, 'logformat', default=['simple']
-                    )
-                    try:
-                        log_event_to_channel(msg, reason, chid, formats)
-                    except Exception or AttributeError:
-                        logging.exception(
-                            'Failed to send notification to channel [{}]'.format(chid)
-                        )
             except Exception or AttributeError as ex:
                 logging.error('Failed to process spam message: {}'.format(
                     ex))
@@ -853,6 +528,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# daemon = Daemonize(app='cybex', pid=pid, action=main)
-# daemon.start()

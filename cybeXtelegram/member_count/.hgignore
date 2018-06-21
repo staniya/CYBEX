@@ -1,0 +1,16 @@
+syntax:glob
+
+# Common
+*.pyc
+*.pyo
+*.swp
+*.swo
+*.orig
+
+.env
+pip-log.txt
+.production
+
+syntax:regexp
+^var/
+^.git/
