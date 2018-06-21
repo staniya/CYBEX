@@ -109,7 +109,6 @@ def create_bot(api_token, db):
         now = datetime.utcnow()
         ALL_LINKS[link] = now
 
-        #TODO have to change msg.chat.id to link
         number_users = bot.get_chat_members_count(link)
         try:
             db.user_numbers.find_one_and_update(
@@ -227,10 +226,27 @@ def create_bot(api_token, db):
 
     return bot
 
+
 def everyday_update():
     names = str(db.links.find({'$and': [{'link_name': {'$ne': None}}, ]}))
     for name in names:
+        now = datetime.utcnow()
+        number_users = bot.get_chat_members_count(name)
+        try:
+            db.user_numbers.save(
+                {
+                    'link': name,
+                },
+                {'$set':
+                    {
+                        'date': now,
+                        'number': number_users,
+                    }},
+                upsert=True,
+            )
 
+        except Exception as ex:
+            logging.error('Failed to save link: {}'.format(str(ex)))
 
 
 if __name__ == '__main__':
@@ -254,7 +270,7 @@ if __name__ == '__main__':
 
     while True:
         try:
-            schedule.every(1440).minutes.do(get_join_date(msg))
+            schedule.every(1440).minutes.do(everyday_update())
             bot.polling(none_stop=True)
         except Exception as e:
             logging.error(e)
