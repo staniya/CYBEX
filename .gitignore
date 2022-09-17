@@ -108,3 +108,4 @@ venv.bak/
 .idea/.name
 .idea/CYBEX.iml
 .idea/workspace.xml
+./cybeXtelegram/nosticker/config.yaml
